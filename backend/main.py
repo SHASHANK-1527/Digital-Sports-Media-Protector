@@ -1,5 +1,8 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from pathlib import Path
+
+Path("/tmp/dap").mkdir(parents=True, exist_ok=True)
 
 from routers import register, detect, assets
 

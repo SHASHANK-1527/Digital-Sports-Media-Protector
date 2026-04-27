@@ -3,13 +3,13 @@ uvicorn
 python-multipart
 pillow
 imagehash
-torch
-torchvision
+torch==2.1.0
+torchvision==0.16.0
 opencv-python-headless
 ffmpeg-python
 invisible-watermark
 google-generativeai
-firebase-admin
+firebase-admin==6.4.0
 reportlab
 yt-dlp
 requests

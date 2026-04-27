@@ -4,7 +4,7 @@ import torchvision.transforms as transforms
 from PIL import Image
 from pathlib import Path
 
-model = models.mobilenet_v2(pretrained=True)
+model = models.mobilenet_v2(weights=models.MobileNet_V2_Weights.DEFAULT)
 model.classifier = torch.nn.Identity()   # remove classification head, keep embeddings
 model.eval()
 

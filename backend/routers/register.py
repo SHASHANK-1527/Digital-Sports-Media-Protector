@@ -6,6 +6,7 @@ from services.embedding import generate_embedding
 from services.watermark import embed_watermark
 from db.firestore import save_official_media
 from pathlib import Path
+from datetime import datetime, timezone
 import uuid, shutil
 
 router = APIRouter()
@@ -48,7 +49,7 @@ async def register_asset(
   wm_path = Path(f"/tmp/dap/wm_{content_id}.jpg")
   embed_watermark(rep_frame, wm_payload, wm_path)
 
-  # Save to Firestore (Storage upload omitted for brevity — use firebase_admin storage)
+  # Save to Firestore
   save_official_media({
     "content_id": content_id,
     "owner_name": owner_name,
@@ -57,7 +58,8 @@ async def register_asset(
     "embedding": embedding,
     "watermark_payload": wm_payload,
     "detection_count": 0,
-    "file_url": ""   # populate after Firebase Storage upload
+    "file_url": "",
+    "upload_timestamp": datetime.now(timezone.utc),
   })
 
   return {"content_id": content_id, "message": "Asset registered successfully"}

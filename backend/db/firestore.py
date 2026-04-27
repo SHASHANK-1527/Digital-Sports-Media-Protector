@@ -1,5 +1,6 @@
 import firebase_admin
 from firebase_admin import credentials, firestore
+from google.cloud.firestore import Increment
 import os
 
 cred = credentials.Certificate(os.environ["FIREBASE_SERVICE_ACCOUNT_PATH"])
@@ -25,4 +26,5 @@ def get_detection(detection_id: str) -> dict | None:
 
 def increment_detection_count(content_id: str):
   ref = db.collection("official_media").document(content_id)
-  ref.update({"detection_count": firestore.Increment(1)})
+  ref.update({"detection_count": Increment(1)})
+
