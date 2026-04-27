@@ -12,6 +12,8 @@ export const getDetection = (id) => axios.get(`${BASE}/detections/${id}`)
 
 export const getReportUrl = (id) => `${BASE}/detections/${id}/report`
 
+export const batchDetect = (urls) => axios.post(`${BASE}/batch-detect`, { urls })
+
 // Admin portal
 export const registerAsset = (formData, idToken) =>
   axios.post(`${BASE}/register`, formData, {

@@ -4,7 +4,7 @@ from pathlib import Path
 
 Path("/tmp/dap").mkdir(parents=True, exist_ok=True)
 
-from routers import register, detect, assets
+from routers import register, detect, assets, batch
 
 app = FastAPI(title="Digital Asset Protection API")
 
@@ -18,3 +18,4 @@ app.add_middleware(
 app.include_router(register.router)
 app.include_router(detect.router)
 app.include_router(assets.router)
+app.include_router(batch.router)
