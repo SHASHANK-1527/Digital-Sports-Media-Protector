@@ -1,0 +1,17 @@
+fastapi
+uvicorn
+python-multipart
+pillow
+imagehash
+torch
+torchvision
+opencv-python-headless
+ffmpeg-python
+invisible-watermark
+google-generativeai
+firebase-admin
+reportlab
+yt-dlp
+requests
+numpy
+scipy
