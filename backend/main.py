@@ -24,12 +24,20 @@ app.include_router(batch.router)
 async def health_check():
     from db.firestore import db, db_id
     try:
-        # Try to list collections as a connectivity test
+        # Write test
+        test_ref = db.collection("_health_test").document("test")
+        test_ref.set({"timestamp": firestore.SERVER_TIMESTAMP, "msg": "hello"})
+        
+        # Read test
+        doc = test_ref.get()
+        write_test = "success" if doc.exists else "failed_read"
+        
         collections = [c.id for c in db.collections()]
         return {
             "status": "healthy",
             "project_id": db.project,
             "database": db_id,
+            "write_test": write_test,
             "collections": collections
         }
     except Exception as e:

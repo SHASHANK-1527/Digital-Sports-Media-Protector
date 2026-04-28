@@ -163,7 +163,7 @@ export default function DetectionResult() {
                    <p className="font-mono text-[9px] text-brand-neutral uppercase tracking-tighter mb-2">Hash Signature</p>
                    <div className="flex items-center gap-2 font-mono text-[10px] text-brand-primary truncate">
                       <Database className="w-3 h-3" />
-                      {result.detection_id.substring(0, 16)}...
+                      {result.detection_id?.substring(0, 16) || result.id?.substring(0, 16) || 'N/A'}...
                    </div>
                 </div>
               </div>
