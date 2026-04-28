@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams, Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { Zap, Download, ShieldAlert, ArrowLeft, Info } from 'lucide-react'
+import { Zap, Download, ShieldAlert, ArrowLeft, Info, Fingerprint, Database, ShieldCheck } from 'lucide-react'
 import Navbar from '../components/Navbar'
 import ComparisonView from '../components/ComparisonView'
 import Badge from '../components/ui/Badge'
@@ -128,14 +128,49 @@ export default function DetectionResult() {
         {/* AI Analysis & Evidence */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           
-          {/* AI Analysis Panel */}
-          <motion.div 
-            className="lg:col-span-2"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-          >
-            <Card className="h-full border-l-[3px] border-l-brand-primary p-6 space-y-6">
+          {/* Forensic Trace & AI Analysis */}
+          <div className="lg:col-span-2 grid grid-cols-1 lg:grid-cols-3 gap-8">
+            
+            {/* Forensic Trace */}
+            <Card className="lg:col-span-1 p-6 space-y-6">
+              <div className="flex items-center justify-between">
+                <h3 className="font-mono text-xs text-brand-primary uppercase tracking-widest flex items-center gap-2">
+                  <ShieldCheck className="w-4 h-4" /> Digital Forensic Trace
+                </h3>
+              </div>
+
+              <div className="space-y-4">
+                <div className="p-4 bg-bg-void/50 border border-white/5 rounded-lg flex items-center justify-between">
+                  <div className="space-y-1">
+                    <p className="font-mono text-[9px] text-brand-neutral uppercase tracking-tighter">DCT Watermark</p>
+                    <p className={`font-mono text-xs font-bold ${result.watermark_verified ? 'text-brand-primary' : 'text-brand-neutral'}`}>
+                      {result.watermark_verified ? 'VERIFIED' : 'NOT DETECTED'}
+                    </p>
+                  </div>
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center ${result.watermark_verified ? 'bg-brand-primary/10 text-brand-primary' : 'bg-white/5 text-brand-neutral'}`}>
+                    <Fingerprint className="w-4 h-4" />
+                  </div>
+                </div>
+
+                {result.watermark_verified && (
+                  <div className="p-4 bg-brand-primary/5 border border-brand-primary/20 rounded-lg animate-pulse">
+                     <p className="font-mono text-[9px] text-brand-primary uppercase mb-1">Decoded Payload</p>
+                     <p className="font-mono text-[10px] text-white break-all">{result.watermark_payload}</p>
+                  </div>
+                )}
+
+                <div className="p-4 bg-bg-void/50 border border-white/5 rounded-lg">
+                   <p className="font-mono text-[9px] text-brand-neutral uppercase tracking-tighter mb-2">Hash Signature</p>
+                   <div className="flex items-center gap-2 font-mono text-[10px] text-brand-primary truncate">
+                      <Database className="w-3 h-3" />
+                      {result.detection_id.substring(0, 16)}...
+                   </div>
+                </div>
+              </div>
+            </Card>
+
+            {/* AI Analysis Panel */}
+            <Card className="lg:col-span-2 p-6 space-y-6">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2 text-brand-primary">
                   <Zap className="w-5 h-5 fill-current" />
@@ -151,7 +186,7 @@ export default function DetectionResult() {
                 </blockquote>
               </div>
             </Card>
-          </motion.div>
+          </div>
 
           {/* Evidence Report */}
           <motion.div

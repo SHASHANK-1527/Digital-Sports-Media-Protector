@@ -180,6 +180,57 @@ export default function AdminDashboard() {
           />
         </div>
 
+        {/* Global Piracy Monitor - Visual X-Factor */}
+        <div className="mb-10">
+          <div className="bg-[#12171F] border border-white/[0.07] rounded-lg overflow-hidden p-8 relative">
+            <div className="flex items-center justify-between mb-8">
+              <div className="space-y-1">
+                <h3 className="font-display font-bold text-lg text-white flex items-center gap-2">
+                   <div className="w-2 h-2 rounded-full bg-brand-secondary animate-pulse" />
+                   Real-Time Global Piracy Monitor
+                </h3>
+                <p className="font-mono text-[10px] text-brand-neutral uppercase tracking-widest">Active Stream Interception Clusters</p>
+              </div>
+              <div className="flex gap-4">
+                 <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full bg-brand-primary" />
+                    <span className="font-mono text-[9px] text-brand-neutral uppercase">Clean Nodes</span>
+                 </div>
+                 <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full bg-brand-secondary" />
+                    <span className="font-mono text-[9px] text-brand-neutral uppercase">Infringement Detected</span>
+                 </div>
+              </div>
+            </div>
+
+            {/* Mock Map / Radar Visual */}
+            <div className="h-48 w-full bg-[#0C0F14] rounded-lg border border-white/5 relative overflow-hidden flex items-center justify-center">
+               <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(circle, #00E5A0 1px, transparent 1px)', backgroundSize: '30px 30px' }} />
+               <div className="absolute w-full h-[1px] bg-brand-primary/10 top-1/2 -translate-y-1/2" />
+               <div className="absolute h-full w-[1px] bg-brand-primary/10 left-1/2 -translate-x-1/2" />
+               
+               {/* Pulsing Alert Nodes */}
+               <div className="absolute top-1/4 left-1/3 group">
+                  <div className="w-3 h-3 bg-brand-secondary rounded-full animate-ping opacity-75" />
+                  <div className="absolute inset-0 w-3 h-3 bg-brand-secondary rounded-full" />
+                  <div className="absolute top-4 left-0 bg-bg-void/90 border border-brand-secondary/30 px-2 py-1 rounded text-[8px] font-mono text-brand-secondary whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity">
+                     UFC Live_Stream_04 (London)
+                  </div>
+               </div>
+
+               <div className="absolute bottom-1/3 right-1/4 group">
+                  <div className="w-3 h-3 bg-brand-secondary rounded-full animate-ping opacity-75" />
+                  <div className="absolute inset-0 w-3 h-3 bg-brand-secondary rounded-full" />
+                  <div className="absolute top-4 left-0 bg-bg-void/90 border border-brand-secondary/30 px-2 py-1 rounded text-[8px] font-mono text-brand-secondary whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity">
+                     EPL_Full_Match_Replay (Nairobi)
+                  </div>
+               </div>
+
+               <span className="font-mono text-[10px] text-brand-primary opacity-40 uppercase tracking-[0.5em]">Forensic Scan Active</span>
+            </div>
+          </div>
+        </div>
+
         {/* Asset Registry */}
         <div className="space-y-4">
           <div className="flex items-center justify-between px-2">

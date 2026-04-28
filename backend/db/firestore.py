@@ -22,8 +22,10 @@ if not firebase_admin._apps:
     print(f"DEBUG: Firebase Initializing with project_id: {getattr(cred, 'project_id', 'unknown')}")
     firebase_admin.initialize_app(cred)
 
-db = firestore.client()
-print(f"DEBUG: Firestore client initialized for project: {db.project}")
+# Force the use of your specific database ID
+db_id = "sports-media-protector"
+db = firestore.client(database=db_id)
+print(f"DEBUG: Firestore client FORCED to project: {db.project} (Database: {db_id})")
 
 def save_official_media(data: dict):
     try:

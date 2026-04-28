@@ -81,3 +81,5 @@ frontend/.env.*
 backend/dataset
 
 backend/*.pth
+
+*pptx*

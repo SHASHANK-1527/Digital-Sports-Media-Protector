@@ -69,6 +69,10 @@ async def detect_media(
     if match:
       gemini_desc = describe_content(rep_frame)
 
+    # Forensic Watermark Extraction
+    from services.watermark import extract_watermark
+    watermark_found = extract_watermark(rep_frame)
+
     # Increment detection count on matched asset
     if match and verdict in ["Pirated", "Suspicious"]:
       increment_detection_count(match["content_id"])
@@ -82,6 +86,8 @@ async def detect_media(
       "matched_content_id": match["content_id"] if match else None,
       "matched_owner": match["owner_name"] if match else None,
       "matched_file_url": match.get("file_url") if match else None,
+      "watermark_verified": watermark_found is not None,
+      "watermark_payload": watermark_found,
       "timestamp_match_start": None,
       "timestamp_match_end": None,
       "gemini_description": gemini_desc,
