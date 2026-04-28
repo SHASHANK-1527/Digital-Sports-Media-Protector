@@ -1,11 +1,20 @@
-import google.generativeai as genai
-import os
-from pathlib import Path
+_gemini_model = None
 
-genai.configure(api_key=os.environ["GOOGLE_API_KEY"])
-model = genai.GenerativeModel("gemini-1.5-flash")
+def get_gemini_model():
+    global _gemini_model
+    if _gemini_model is None:
+        import google.generativeai as genai
+        api_key = os.environ.get("GOOGLE_API_KEY")
+        if not api_key:
+            return None
+        genai.configure(api_key=api_key)
+        _gemini_model = genai.GenerativeModel("gemini-1.5-flash")
+    return _gemini_model
 
 def describe_content(image_path: Path) -> str:
+    model = get_gemini_model()
+    if not model:
+        return "Gemini API key not configured."
   """
   Send an image frame to Gemini and get a natural-language description
   of the sports content it shows (for use in the evidence report).
