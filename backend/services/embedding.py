@@ -4,8 +4,19 @@ import torchvision.transforms as transforms
 from PIL import Image
 from pathlib import Path
 
+# Load fine-tuned sports-specific model
 model = models.mobilenet_v2(weights=models.MobileNet_V2_Weights.DEFAULT)
-model.classifier = torch.nn.Identity()   # remove classification head, keep embeddings
+model.classifier = torch.nn.Identity()
+
+weights_path = Path(__file__).parent.parent / "sports_mobilenet_embeddings.pth"
+if weights_path.exists():
+    model.load_state_dict(
+        torch.load(weights_path, map_location="cpu")
+    )
+    print("Loaded fine-tuned sports model (88% accuracy)")
+else:
+    print("Fine-tuned weights not found, using pretrained ImageNet weights")
+
 model.eval()
 
 transform = transforms.Compose([

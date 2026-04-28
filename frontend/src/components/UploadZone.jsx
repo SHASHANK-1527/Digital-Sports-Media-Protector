@@ -1,12 +1,11 @@
 import { useMemo, useState, useRef } from 'react'
+import { motion } from 'framer-motion'
 
 export default function UploadZone({ onFileSelect, onUrlChange, accept, maxSizeMB }) {
   const [dragging, setDragging] = useState(false)
   const [selectedFile, setSelectedFile] = useState(null)
   const [error, setError] = useState(null)
   const fileInputRef = useRef(null)
-
-  const acceptedTypes = accept.split(',').map((type) => type.trim())
 
   const handleFile = (file) => {
     if (!file) return
@@ -46,57 +45,148 @@ export default function UploadZone({ onFileSelect, onUrlChange, accept, maxSizeM
   }, [selectedFile])
 
   return (
-    <div className="space-y-4">
-      <div
-        className={`rounded-3xl border-2 p-8 text-center transition ${dragging ? 'border-blue-500 bg-blue-50' : 'border-slate-300 bg-white'}`}
-        onDragOver={(event) => {
-          event.preventDefault()
-          setDragging(true)
-        }}
-        onDragLeave={() => setDragging(false)}
-        onDrop={handleDrop}
-        onClick={() => fileInputRef.current?.click()}
+    <div className="space-y-6">
+      {/* Circular Radar Scanner */}
+      <motion.div
+        className="flex justify-center"
+        initial={{ opacity: 0, scale: 0.9 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.5 }}
       >
-        <p className="text-lg font-semibold text-slate-900">Drag & drop a file here</p>
-        <p className="mt-2 text-sm text-slate-500">or click to select an image or video</p>
-        <p className="mt-4 text-xs text-slate-400">Accepted: JPG, PNG, MP4, MOV, WebM — max {maxSizeMB}MB</p>
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept={accept}
-          className="hidden"
-          onChange={handleInputChange}
-        />
-      </div>
+        <div
+          className="relative h-64 w-64 cursor-pointer"
+          onDragOver={(event) => {
+            event.preventDefault()
+            setDragging(true)
+          }}
+          onDragLeave={() => setDragging(false)}
+          onDrop={handleDrop}
+          onClick={() => fileInputRef.current?.click()}
+        >
+          {/* Outer rings */}
+          <svg className="absolute inset-0 h-full w-full" viewBox="0 0 256 256">
+            {/* Static rings */}
+            <circle cx="128" cy="128" r="120" fill="none" stroke="#1E2530" strokeWidth="1" />
+            <circle cx="128" cy="128" r="80" fill="none" stroke="#1E2530" strokeWidth="1" />
+            <circle cx="128" cy="128" r="40" fill="none" stroke="#1E2530" strokeWidth="1" />
+            
+            {/* Grid lines */}
+            <line x1="128" y1="8" x2="128" y2="248" stroke="#1E2530" strokeWidth="0.5" />
+            <line x1="8" y1="128" x2="248" y2="128" stroke="#1E2530" strokeWidth="0.5" />
+          </svg>
 
+          {/* Pulsing rings */}
+          <motion.div
+            className="absolute inset-0 rounded-full border-2 border-dap-primary/40"
+            animate={dragging ? { scale: [1, 1.2], opacity: [0.4, 0.8] } : { scale: [1, 1.1, 1], opacity: [0.3, 0.5, 0.3] }}
+            transition={{ duration: dragging ? 0.6 : 1.5, repeat: Infinity }}
+          />
+          <motion.div
+            className="absolute inset-4 rounded-full border border-dap-primary/30"
+            animate={dragging ? { scale: [1, 1.15], opacity: [0.3, 0.6] } : { scale: [1, 1.08, 1], opacity: [0.2, 0.4, 0.2] }}
+            transition={{ duration: dragging ? 0.6 : 1.8, repeat: Infinity, delay: 0.2 }}
+          />
+          <motion.div
+            className="absolute inset-8 rounded-full border border-dap-primary/20"
+            animate={dragging ? { scale: [1, 1.1], opacity: [0.2, 0.4] } : { scale: [1, 1.05, 1], opacity: [0.1, 0.3, 0.1] }}
+            transition={{ duration: dragging ? 0.6 : 2, repeat: Infinity, delay: 0.4 }}
+          />
+
+          {/* Rotating sweep line */}
+          <motion.div
+            className="absolute inset-0 overflow-hidden rounded-full"
+            animate={{ rotate: 360 }}
+            transition={{ duration: dragging ? 1.5 : 3, repeat: Infinity, linear: true }}
+          >
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-dap-primary/40 to-transparent" style={{ width: '2px', left: '50%' }} />
+          </motion.div>
+
+          {/* Center upload icon */}
+          <div className="absolute inset-0 flex items-center justify-center">
+            <motion.div
+              className="text-center"
+              animate={dragging ? { scale: 1.1 } : { scale: 1 }}
+              transition={{ duration: 0.3 }}
+            >
+              <div className="text-4xl text-dap-primary mb-2">⚡</div>
+              <p className="font-mono text-xs text-dap-text-secondary">Drop file</p>
+            </motion.div>
+          </div>
+
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept={accept}
+            className="hidden"
+            onChange={handleInputChange}
+          />
+        </div>
+      </motion.div>
+
+      {/* File info */}
       {fileSelectedText && (
-        <div className="flex items-center justify-between rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-          <p className="text-sm text-slate-700">{fileSelectedText}</p>
-          <button
+        <motion.div
+          className="rounded-lg border border-dap-border bg-dap-border/30 px-4 py-3 flex items-center justify-between"
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3 }}
+        >
+          <p className="font-mono text-sm text-dap-text-primary">{fileSelectedText}</p>
+          <motion.button
             type="button"
             onClick={handleRemove}
-            className="rounded-lg bg-slate-900 px-3 py-1 text-sm font-medium text-white hover:bg-slate-700"
+            className="px-3 py-1 border border-dap-danger text-dap-danger hover:bg-dap-danger/10 transition-colors font-mono text-xs"
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
           >
-            Remove
-          </button>
-        </div>
+            ✕ Remove
+          </motion.button>
+        </motion.div>
       )}
 
-      <div className="space-y-2">
-        <label className="block text-sm font-medium text-slate-700">Or paste a URL</label>
-        <input
-          type="url"
-          placeholder="https://example.com/video.mp4"
-          onChange={(event) => {
-            setSelectedFile(null)
-            onFileSelect(null)
-            onUrlChange(event.target.value)
-          }}
-          className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none focus:border-slate-900"
-        />
-      </div>
+      {/* URL Input */}
+      <motion.div
+        className="space-y-2"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.5, delay: 0.2 }}
+      >
+        <label className="block font-mono text-xs text-dap-text-secondary">// REMOTE ASSET</label>
+        <div className="relative">
+          <span className="absolute left-4 top-3 font-mono text-dap-primary">&gt;</span>
+          <input
+            type="url"
+            placeholder="https://example.com/video.mp4"
+            onChange={(event) => {
+              setSelectedFile(null)
+              onFileSelect(null)
+              onUrlChange(event.target.value)
+            }}
+            className="w-full pl-8 pr-4 py-3 font-mono text-sm bg-dap-bg border border-dap-border text-dap-text-primary outline-none transition-colors focus:border-dap-primary focus:ring-1 focus:ring-dap-primary/30"
+          />
+        </div>
+      </motion.div>
 
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      {/* Scan button */}
+      <motion.button
+        type="button"
+        onClick={() => fileInputRef.current?.click()}
+        className="w-full py-3 border border-dap-primary text-dap-primary font-mono text-sm uppercase tracking-wider hover:bg-dap-primary/10 transition-colors"
+        whileHover={{ scale: 1.02, boxShadow: '0 0 20px rgba(58, 110, 165, 0.3)' }}
+        whileTap={{ scale: 0.98 }}
+      >
+        [INITIATE SCAN]
+      </motion.button>
+
+      {error && (
+        <motion.p
+          className="font-mono text-sm text-dap-danger"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+        >
+          ⚠ {error}
+        </motion.p>
+      )}
     </div>
   )
 }

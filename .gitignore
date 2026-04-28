@@ -76,3 +76,8 @@ frontend/.env.*
 *~
 *.swp
 *.swo
+
+# Model Fine-tuning datasets 
+backend/dataset
+
+backend/*.pth

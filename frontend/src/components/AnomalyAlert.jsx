@@ -1,24 +1,46 @@
 import { useState } from 'react'
+import { motion } from 'framer-motion'
 
 export default function AnomalyAlert({ alert }) {
   const [visible, setVisible] = useState(true)
   if (!visible || !alert) return null
 
   return (
-    <div className="mb-6 rounded-3xl border border-red-200 bg-red-50 p-5 text-red-900 shadow-sm">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <p className="font-semibold">Alert: {alert.owner_name || 'Asset'} has been detected {alert.detection_count} times in the last 24 hours without authorization</p>
-          <p className="mt-2 text-sm text-red-800">This asset may be spreading without authorization.</p>
+    <motion.div
+      className="mb-6 border-l-4 border-dap-danger bg-dap-danger/10 p-4 font-mono text-sm"
+      style={{ borderLeftColor: '#E5484D' }}
+      initial={{ opacity: 0, x: -20 }}
+      animate={{ opacity: 1, x: 0 }}
+      transition={{ duration: 0.4 }}
+    >
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="space-y-2">
+          <motion.div
+            className="flex items-center gap-2 text-dap-danger"
+            animate={{ opacity: [0.5, 1, 0.5] }}
+            transition={{ duration: 1.5, repeat: Infinity }}
+          >
+            <span className="text-lg">🚨</span>
+            <span className="font-bold uppercase">[CRITICAL]</span>
+          </motion.div>
+          <p className="text-dap-text-primary">
+            Asset {alert.owner_name || 'UNKNOWN'} spreading without authorization
+          </p>
+          <p className="text-xs text-dap-text-secondary">
+            {alert.detection_count} detections in 24h
+          </p>
         </div>
-        <button
+        <motion.button
           type="button"
           onClick={() => setVisible(false)}
-          className="rounded-full bg-red-200 px-3 py-1 text-sm font-semibold text-red-900"
+          className="px-3 py-1 border border-dap-danger text-dap-danger hover:bg-dap-danger/10 transition-colors whitespace-nowrap"
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
         >
-          Dismiss
-        </button>
+          ✕ Dismiss
+        </motion.button>
       </div>
-    </div>
+    </motion.div>
   )
 }
+

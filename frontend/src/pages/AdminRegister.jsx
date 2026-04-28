@@ -1,20 +1,28 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { motion } from 'framer-motion'
 import { onAuthStateChanged } from 'firebase/auth'
 import { auth } from '../services/firebase'
 import { registerAsset } from '../services/api'
 import UploadZone from '../components/UploadZone'
 
+const stagger = {
+  hidden: { opacity: 0 },
+  show: { opacity: 1, transition: { staggerChildren: 0.1 } },
+}
+const item = { hidden: { opacity: 0, y: 12 }, show: { opacity: 1, y: 0 } }
+
 export default function AdminRegister() {
-  const [file, setFile] = useState(null)
-  const [ownerName, setOwnerName] = useState('')
+  const [file, setFile]                   = useState(null)
+  const [ownerName, setOwnerName]         = useState('')
   const [sportCategory, setSportCategory] = useState('')
-  const [loading, setLoading] = useState(false)
-  const [progress, setProgress] = useState(0)
-  const [error, setError] = useState('')
-  const [success, setSuccess] = useState('')
+  const [loading, setLoading]             = useState(false)
+  const [progress, setProgress]           = useState(0)
+  const [error, setError]                 = useState('')
+  const [success, setSuccess]             = useState('')
   const navigate = useNavigate()
 
+  /* Auth guard — redirect if not logged in */
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (!user) {
@@ -26,50 +34,35 @@ export default function AdminRegister() {
     return unsubscribe
   }, [navigate])
 
+  /* Fake progress bar while uploading */
   useEffect(() => {
     if (!loading) return
     const interval = window.setInterval(() => {
-      setProgress((value) => Math.min(95, value + 10))
+      setProgress((v) => Math.min(95, v + 8))
     }, 500)
     return () => window.clearInterval(interval)
   }, [loading])
 
-  const previewUrl = useMemo(() => {
-    return file ? URL.createObjectURL(file) : null
-  }, [file])
-
-  useEffect(() => {
-    return () => {
-      if (previewUrl) URL.revokeObjectURL(previewUrl)
-    }
-  }, [previewUrl])
+  /* Object URL for preview */
+  const previewUrl = useMemo(() => (file ? URL.createObjectURL(file) : null), [file])
+  useEffect(() => () => { if (previewUrl) URL.revokeObjectURL(previewUrl) }, [previewUrl])
 
   const handleSubmit = async (event) => {
     event.preventDefault()
     setError('')
     setSuccess('')
 
-    if (!file) {
-      setError('Please select an image or video file to register.')
-      return
-    }
-
-    if (!sportCategory) {
-      setError('Please choose a sport category.')
-      return
-    }
+    if (!file) { setError('Please select an image or video file to register.'); return }
+    if (!sportCategory) { setError('Please choose a sport category.'); return }
 
     const user = auth.currentUser
-    if (!user) {
-      navigate('/admin')
-      return
-    }
+    if (!user) { navigate('/admin'); return }
 
     setLoading(true)
     setProgress(10)
 
     try {
-      const idToken = await user.getIdToken()
+      const idToken  = await user.getIdToken()
       const formData = new FormData()
       formData.append('file', file)
       formData.append('owner_name', ownerName)
@@ -87,92 +80,167 @@ export default function AdminRegister() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 px-4 py-10 sm:px-6">
-      <div className="mx-auto max-w-4xl rounded-3xl bg-white p-8 shadow-xl">
-        <div className="flex items-center justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-semibold text-slate-900">Register New Asset</h1>
-            <p className="mt-2 text-sm text-slate-600">Upload official sports media and register it in the system.</p>
-          </div>
-          <button
-            type="button"
-            onClick={() => navigate('/admin/dashboard')}
-            className="rounded-2xl border border-slate-300 bg-slate-50 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100"
+    <div className="min-h-screen bg-dap-bg px-4 py-10 text-dap-text-primary sm:px-6">
+      <div className="mx-auto max-w-4xl">
+        <motion.div
+          className="space-y-8"
+          variants={stagger}
+          initial="hidden"
+          animate="show"
+        >
+          {/* Header row */}
+          <motion.div
+            variants={item}
+            className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"
           >
-            Back to dashboard
-          </button>
-        </div>
-
-        <form onSubmit={handleSubmit} className="mt-10 space-y-8">
-          <div className="grid gap-6 md:grid-cols-2">
-            <div>
-              <label className="block text-sm font-medium text-slate-700">Owner Name</label>
-              <input
-                type="text"
-                value={ownerName}
-                onChange={(event) => setOwnerName(event.target.value)}
-                className="mt-2 w-full rounded-2xl border border-slate-300 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none focus:border-slate-900"
-              />
+            <div className="space-y-1">
+              <p className="font-mono text-xs text-dap-primary">[ASSET_REGISTRATION]</p>
+              <h1 className="font-mono text-2xl font-bold text-dap-text-primary">
+                REGISTER NEW ASSET
+              </h1>
+              <p className="font-mono text-xs text-dap-text-secondary">
+                // Upload official sports media and register it in the system
+              </p>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700">Sport Category</label>
-              <select
-                value={sportCategory}
-                onChange={(event) => setSportCategory(event.target.value)}
-                className="mt-2 w-full rounded-2xl border border-slate-300 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none focus:border-slate-900"
-              >
-                <option value="">Select a category</option>
-                <option value="Football">Football</option>
-                <option value="Basketball">Basketball</option>
-                <option value="Cricket">Cricket</option>
-                <option value="Tennis">Tennis</option>
-                <option value="Other">Other</option>
-              </select>
-            </div>
-          </div>
 
-          <div>
-            <label className="block text-sm font-medium text-slate-700">File Upload</label>
-            <div className="mt-4">
-              <UploadZone
-                accept="image/*,video/*"
-                maxSizeMB={200}
-                onFileSelect={setFile}
-                onUrlChange={() => {}}
-              />
-            </div>
-          </div>
+            <motion.button
+              type="button"
+              onClick={() => navigate('/admin/dashboard')}
+              className="self-start px-4 py-2 border border-dap-text-secondary text-dap-text-secondary hover:border-dap-primary hover:text-dap-primary font-mono text-xs uppercase tracking-wider transition-colors"
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+            >
+              ← DASHBOARD
+            </motion.button>
+          </motion.div>
 
-          {previewUrl && (
-            <div className="rounded-3xl border border-slate-200 bg-slate-50 p-4">
-              {file.type.startsWith('image/') ? (
-                <img src={previewUrl} alt="Preview" className="h-60 w-full rounded-3xl object-cover" />
-              ) : (
-                <video src={previewUrl} controls className="h-60 w-full rounded-3xl bg-black object-cover" />
-              )}
-            </div>
-          )}
+          {/* Form card */}
+          <motion.div
+            variants={item}
+            className="border border-dap-border bg-dap-bg/50 p-8"
+          >
+            <form onSubmit={handleSubmit} className="space-y-8">
+              {/* Fields grid */}
+              <div className="grid gap-6 md:grid-cols-2">
+                <div>
+                  <label className="block font-mono text-xs uppercase tracking-[0.15em] text-dap-text-secondary mb-2">
+                    Owner Name
+                  </label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-3 font-mono text-dap-primary text-sm">&gt;</span>
+                    <input
+                      type="text"
+                      value={ownerName}
+                      onChange={(e) => setOwnerName(e.target.value)}
+                      className="w-full pl-8 pr-3 py-3 bg-dap-bg border border-dap-border text-dap-text-primary font-mono text-sm outline-none transition-colors focus:border-dap-primary focus:ring-1 focus:ring-dap-primary/30"
+                    />
+                  </div>
+                </div>
 
-          {loading && (
-            <div className="rounded-2xl bg-slate-100 p-4">
-              <div className="mb-2 text-sm text-slate-700">Uploading asset...</div>
-              <div className="h-3 overflow-hidden rounded-full bg-slate-200">
-                <div className="h-full rounded-full bg-slate-900" style={{ width: `${progress}%` }} />
+                <div>
+                  <label className="block font-mono text-xs uppercase tracking-[0.15em] text-dap-text-secondary mb-2">
+                    Sport Category
+                  </label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-3 font-mono text-dap-primary text-sm">&gt;</span>
+                    <select
+                      value={sportCategory}
+                      onChange={(e) => setSportCategory(e.target.value)}
+                      className="w-full pl-8 pr-3 py-3 bg-dap-bg border border-dap-border text-dap-text-primary font-mono text-sm outline-none transition-colors focus:border-dap-primary focus:ring-1 focus:ring-dap-primary/30 appearance-none"
+                    >
+                      <option value="" className="bg-dap-bg">Select a category</option>
+                      <option value="Football"   className="bg-dap-bg">Football</option>
+                      <option value="Basketball" className="bg-dap-bg">Basketball</option>
+                      <option value="Cricket"    className="bg-dap-bg">Cricket</option>
+                      <option value="Tennis"     className="bg-dap-bg">Tennis</option>
+                      <option value="Other"      className="bg-dap-bg">Other</option>
+                    </select>
+                  </div>
+                </div>
               </div>
-            </div>
-          )}
 
-          {error && <p className="text-sm text-red-600">{error}</p>}
-          {success && <p className="text-sm text-emerald-700">{success}</p>}
+              {/* Upload zone */}
+              <div>
+                <label className="block font-mono text-xs uppercase tracking-[0.15em] text-dap-text-secondary mb-3">
+                  Media File
+                </label>
+                <UploadZone
+                  accept="image/*,video/*"
+                  maxSizeMB={200}
+                  onFileSelect={setFile}
+                  onUrlChange={() => {}}
+                />
+              </div>
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full rounded-2xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            {loading ? 'Registering asset...' : 'Register Asset'}
-          </button>
-        </form>
+              {/* Preview */}
+              {previewUrl && (
+                <motion.div
+                  className="border border-dap-border bg-dap-bg/30 p-4"
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                >
+                  <p className="font-mono text-xs text-dap-text-secondary mb-3">[FILE_PREVIEW]</p>
+                  {file.type.startsWith('image/') ? (
+                    <img src={previewUrl} alt="Preview" className="h-56 w-full object-cover" />
+                  ) : (
+                    <video src={previewUrl} controls className="h-56 w-full bg-black object-contain" />
+                  )}
+                </motion.div>
+              )}
+
+              {/* Progress bar */}
+              {loading && (
+                <motion.div
+                  className="border border-dap-border bg-dap-bg/30 p-4"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                >
+                  <p className="font-mono text-xs text-dap-primary mb-3">
+                    [UPLOADING] {progress}%
+                  </p>
+                  <div className="h-1.5 bg-dap-border overflow-hidden">
+                    <motion.div
+                      className="h-full bg-dap-primary"
+                      animate={{ width: `${progress}%` }}
+                      transition={{ duration: 0.4 }}
+                    />
+                  </div>
+                </motion.div>
+              )}
+
+              {/* Feedback */}
+              {error && (
+                <motion.p
+                  className="font-mono text-xs text-dap-danger border border-dap-danger/30 bg-dap-danger/5 p-3"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                >
+                  ⚠ {error}
+                </motion.p>
+              )}
+              {success && (
+                <motion.p
+                  className="font-mono text-xs text-dap-success border border-dap-success/30 bg-dap-success/5 p-3"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                >
+                  ✓ {success}
+                </motion.p>
+              )}
+
+              {/* Submit */}
+              <motion.button
+                type="submit"
+                disabled={loading}
+                className="w-full py-3 border border-dap-accent text-dap-accent hover:bg-dap-accent/10 font-mono text-xs uppercase tracking-wider disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                whileHover={!loading ? { scale: 1.01, boxShadow: '0 0 24px rgba(255,176,32,0.25)' } : {}}
+                whileTap={!loading ? { scale: 0.99 } : {}}
+              >
+                {loading ? '[REGISTERING...]' : '[REGISTER ASSET]'}
+              </motion.button>
+            </form>
+          </motion.div>
+        </motion.div>
       </div>
     </div>
   )

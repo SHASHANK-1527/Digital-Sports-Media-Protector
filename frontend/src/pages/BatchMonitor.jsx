@@ -1,13 +1,14 @@
 import { useEffect, useState } from 'react'
+import { motion } from 'framer-motion'
 import Navbar from '../components/Navbar'
 import { batchDetect, getReportUrl } from '../services/api'
 
-const badgeClasses = {
-  Pirated: 'bg-red-600 text-white',
-  Suspicious: 'bg-amber-500 text-slate-900',
-  Original: 'bg-green-600 text-white',
-  Unknown: 'bg-slate-500 text-white',
-  Error: 'bg-slate-500 text-white',
+const verdictColors = {
+  Pirated: { badge: 'bg-dap-danger', text: 'text-dap-danger' },
+  Suspicious: { badge: 'bg-dap-accent', text: 'text-dap-accent' },
+  Original: { badge: 'bg-dap-success', text: 'text-dap-success' },
+  Unknown: { badge: 'bg-dap-text-secondary', text: 'text-dap-text-secondary' },
+  Error: { badge: 'bg-dap-text-secondary', text: 'text-dap-text-secondary' },
 }
 
 export default function BatchMonitor() {
@@ -58,108 +59,157 @@ export default function BatchMonitor() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-dap-bg text-dap-text-primary">
       <Navbar />
       <main className="mx-auto max-w-6xl px-4 py-12 sm:px-6">
-        <div className="space-y-8">
-          <div className="rounded-3xl bg-white p-10 shadow-xl">
-            <div className="mb-8">
-              <p className="text-sm font-semibold uppercase tracking-[0.3em] text-slate-500">Batch Monitor</p>
-              <h1 className="mt-6 text-4xl font-semibold text-slate-900">Run batch checks across multiple URLs</h1>
-              <p className="mt-4 max-w-2xl text-slate-600">
-                Paste up to 10 asset URLs, one per line, and run the detection pipeline concurrently for each.
+        <motion.div
+          className="space-y-8"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+        >
+          {/* Input Form */}
+          <motion.div
+            className="border border-dap-border bg-dap-bg/50 backdrop-blur-sm p-8"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.5, delay: 0.1 }}
+          >
+            <div className="mb-8 space-y-3">
+              <p className="font-mono text-xs text-dap-primary">[BATCH_INTELLIGENCE_SCAN]</p>
+              <h1 className="font-mono text-3xl font-bold text-dap-text-primary">BATCH_MONITOR</h1>
+              <p className="font-mono text-xs text-dap-text-secondary max-w-2xl">
+                // submit_up_to_10_urls_for_concurrent_detection
               </p>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-6">
-              <label className="block text-sm font-medium text-slate-700">Asset URLs</label>
-              <textarea
-                value={urlsText}
-                onChange={(event) => setUrlsText(event.target.value)}
-                rows={10}
-                placeholder="https://example.com/media1.jpg\nhttps://example.com/media2.mp4"
-                className="w-full rounded-3xl border border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-900 shadow-sm focus:border-slate-400 focus:outline-none"
-              />
+              <div>
+                <label className="block font-mono text-xs text-dap-text-secondary uppercase tracking-[0.15em] mb-2">
+                  URL_List
+                </label>
+                <textarea
+                  value={urlsText}
+                  onChange={(event) => setUrlsText(event.target.value)}
+                  rows={10}
+                  placeholder="https://example.com/media1.jpg&#10;https://example.com/media2.mp4"
+                  className="w-full bg-dap-bg border border-dap-border px-4 py-4 font-mono text-sm text-dap-text-primary outline-none transition-colors focus:border-dap-primary focus:ring-1 focus:ring-dap-primary/30"
+                />
+              </div>
+
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <p className="text-sm text-slate-500">
-                  {urlLines.length} URL{urlLines.length === 1 ? '' : 's'} pasted · max 10
+                <p className="font-mono text-xs text-dap-text-secondary">
+                  {urlLines.length}/{10} URL{urlLines.length === 1 ? '' : 's'}
                 </p>
-                <button
+                <motion.button
                   type="submit"
                   disabled={!isValid || loading}
-                  className="rounded-2xl bg-slate-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="px-6 py-3 border border-dap-primary text-dap-primary font-mono text-xs uppercase tracking-wider hover:bg-dap-primary/10 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  whileHover={!loading && isValid ? { scale: 1.01, boxShadow: '0 0 30px rgba(58, 110, 165, 0.3)' } : {}}
+                  whileTap={!loading && isValid ? { scale: 0.99 } : {}}
                 >
-                  {loading ? 'Running Batch Check...' : 'Run Batch Check'}
-                </button>
+                  {loading ? '[SCANNING...]' : '[INITIATE_SCAN]'}
+                </motion.button>
               </div>
+
               {(error || (!isValid && urlsText.trim().length > 0)) && (
-                <p className="text-sm text-red-600">
-                  {error || 'Please provide between 1 and 10 URLs, one per line.'}
-                </p>
+                <motion.p
+                  className="font-mono text-xs text-dap-danger border border-dap-danger/30 bg-dap-danger/5 p-2"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                >
+                  ⚠ {error || 'Provide 1-10 URLs, one per line'}
+                </motion.p>
               )}
 
               {loading && (
-                <div className="rounded-2xl bg-slate-100 p-4 text-sm text-slate-700">
-                  Checking {progressIndex} of {urlCount} URL{urlCount === 1 ? '' : 's'}...
-                </div>
+                <motion.div
+                  className="bg-dap-border/20 p-3 border border-dap-border font-mono text-sm text-dap-primary"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                >
+                  $ scanning {progressIndex}/{urlCount} url{urlCount === 1 ? '' : 's'}
+                  <motion.span
+                    animate={{ opacity: [1, 0] }}
+                    transition={{ duration: 0.5, repeat: Infinity }}
+                  >
+                    █
+                  </motion.span>
+                </motion.div>
               )}
             </form>
-          </div>
+          </motion.div>
 
+          {/* Results Table */}
           {results.length > 0 && (
-            <div className="overflow-hidden rounded-3xl bg-white shadow-xl">
-              <div className="border-b border-slate-200 px-6 py-5">
-                <h2 className="text-xl font-semibold text-slate-900">Batch results</h2>
+            <motion.div
+              className="border border-dap-border bg-dap-bg/30 backdrop-blur-sm overflow-hidden"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.2 }}
+            >
+              <div className="border-b border-dap-border px-6 py-4">
+                <h2 className="font-mono text-lg font-bold text-dap-text-primary">[BATCH_RESULTS]</h2>
               </div>
               <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-slate-200">
-                  <thead className="bg-slate-50 text-left text-xs uppercase tracking-[0.16em] text-slate-600">
+                <table className="w-full text-sm text-dap-text-secondary font-mono">
+                  <thead className="bg-dap-border/20 text-xs uppercase tracking-[0.15em] text-dap-text-secondary border-b border-dap-border">
                     <tr>
-                      <th className="px-6 py-3">URL</th>
-                      <th className="px-6 py-3">Verdict</th>
-                      <th className="px-6 py-3">Confidence</th>
-                      <th className="px-6 py-3">Matched Owner</th>
-                      <th className="px-6 py-3">Actions</th>
+                      <th className="px-4 py-3 text-left">URL</th>
+                      <th className="px-4 py-3 text-left">Verdict</th>
+                      <th className="px-4 py-3 text-left">Confidence</th>
+                      <th className="px-4 py-3 text-left">Owner</th>
+                      <th className="px-4 py-3 text-left">Actions</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-200 bg-white text-sm text-slate-700">
+                  <tbody className="divide-y divide-dap-border">
                     {results.map((item, index) => {
                       const verdict = item.verdict || (item.error ? 'Error' : 'Unknown')
-                      const badge = badgeClasses[verdict] || badgeClasses.Unknown
+                      const colors = verdictColors[verdict] || verdictColors.Unknown
                       const confidence = typeof item.confidence_score === 'number' ? `${Math.round(item.confidence_score * 100)}%` : '-'
                       return (
-                        <tr key={`${item.url}-${index}`}>
-                          <td className="px-6 py-4 max-w-xs truncate">{item.url}</td>
-                          <td className="px-6 py-4">
-                            <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${badge}`}>
-                              {verdict.toUpperCase()}
+                        <motion.tr
+                          key={`${item.url}-${index}`}
+                          className="bg-dap-bg/30 hover:bg-dap-border/10 border-l-4"
+                          style={{ borderLeftColor: verdict === 'Pirated' ? '#E5484D' : verdict === 'Suspicious' ? '#FFB020' : '#4C9A6A' }}
+                          initial={{ opacity: 0, x: -20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ duration: 0.3, delay: index * 0.05 }}
+                          whileHover={{ x: 4 }}
+                        >
+                          <td className="px-4 py-3 truncate max-w-xs">{item.url}</td>
+                          <td className="px-4 py-3">
+                            <span className={`font-mono text-xs font-bold ${colors.text}`}>
+                              [{verdict.toUpperCase()}]
                             </span>
-                            {item.error && <p className="mt-2 text-xs text-red-600">{item.error}</p>}
+                            {item.error && <p className="mt-1 text-xs text-dap-danger">{item.error}</p>}
                           </td>
-                          <td className="px-6 py-4">{confidence}</td>
-                          <td className="px-6 py-4">{item.matched_owner || '-'}</td>
-                          <td className="px-6 py-4">
+                          <td className="px-4 py-3">{confidence}</td>
+                          <td className="px-4 py-3">{item.matched_owner || '-'}</td>
+                          <td className="px-4 py-3">
                             {item.verdict === 'Pirated' && item.detection_id ? (
-                              <button
+                              <motion.button
                                 type="button"
                                 onClick={() => handleDownload(item.detection_id)}
-                                className="rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-700"
+                                className="px-3 py-1 border border-dap-danger text-dap-danger hover:bg-dap-danger/10 text-xs transition-colors"
+                                whileHover={{ scale: 1.05 }}
+                                whileTap={{ scale: 0.95 }}
                               >
-                                Download Report
-                              </button>
+                                [REPORT]
+                              </motion.button>
                             ) : (
-                              <span className="text-sm text-slate-500">-</span>
+                              <span className="text-xs text-dap-text-secondary">-</span>
                             )}
                           </td>
-                        </tr>
+                        </motion.tr>
                       )
                     })}
                   </tbody>
                 </table>
               </div>
-            </div>
+            </motion.div>
           )}
-        </div>
+        </motion.div>
       </main>
     </div>
   )
