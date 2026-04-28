@@ -6,7 +6,8 @@ imagehash
 torch==2.9.0
 torchvision==0.24.0
 opencv-python-headless
-ffmpeg-python
+setuptools
+ffmpeg-python==0.2.0
 invisible-watermark
 google-generativeai
 firebase-admin==6.4.0
