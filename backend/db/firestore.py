@@ -19,12 +19,20 @@ if not firebase_admin._apps:
             "Neither FIREBASE_SERVICE_ACCOUNT_JSON nor "
             "FIREBASE_SERVICE_ACCOUNT_PATH is set correctly"
         )
+    print(f"DEBUG: Firebase Initializing with project_id: {getattr(cred, 'project_id', 'unknown')}")
     firebase_admin.initialize_app(cred)
 
 db = firestore.client()
+print(f"DEBUG: Firestore client initialized for project: {db.project}")
 
 def save_official_media(data: dict):
-  db.collection("official_media").document(data["content_id"]).set(data)
+    try:
+        print(f"DEBUG: Attempting to save asset {data['content_id']} to collection 'official_media'")
+        db.collection("official_media").document(data["content_id"]).set(data)
+        print(f"DEBUG: Asset {data['content_id']} saved successfully")
+    except Exception as e:
+        print(f"ERROR: Failed to save to Firestore: {str(e)}")
+        raise e
 
 
 def get_all_official_media() -> list[dict]:
@@ -43,4 +51,3 @@ def get_detection(detection_id: str) -> dict | None:
 def increment_detection_count(content_id: str):
   ref = db.collection("official_media").document(content_id)
   ref.update({"detection_count": Increment(1)})
-
