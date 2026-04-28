@@ -1,49 +1,46 @@
 export default {
-  content: ['./src/**/*.jsx', './src/**/*.js', './index.html'],
+  content: ['./src/**/*.{js,jsx,ts,tsx}', './index.html'],
   theme: {
     extend: {
       colors: {
-        'dap-bg': '#0F1115',
-        'dap-primary': '#3A6EA5',
-        'dap-accent': '#FFB020',
-        'dap-danger': '#E5484D',
-        'dap-success': '#4C9A6A',
-        'dap-text-primary': '#E8EAF0',
-        'dap-text-secondary': '#8A9BB0',
-        'dap-border': '#1E2530',
+        brand: {
+          primary: '#00E5A0',
+          secondary: '#FF4F4F',
+          warning: '#FFB340',
+          neutral: '#8A9BB0',
+        },
+        bg: {
+          void: '#050709',
+          base: '#0C0F14',
+          surface: '#12171F',
+          elevated: '#1A2130',
+          border: 'rgba(255,255,255,0.07)',
+        },
       },
       fontFamily: {
-        mono: ['"JetBrains Mono"', 'ui-monospace', 'Menlo', 'Monaco', 'monospace'],
-        sans: ['Inter', 'system-ui', 'sans-serif'],
-      },
-      keyframes: {
-        radar: {
-          '0%': { transform: 'rotate(0deg)' },
-          '100%': { transform: 'rotate(360deg)' },
-        },
-        pulse_ring: {
-          '0%': { transform: 'scale(1)', opacity: '1' },
-          '100%': { transform: 'scale(2)', opacity: '0' },
-        },
-        typewriter: {
-          '0%': { width: '0' },
-          '100%': { width: '100%' },
-        },
-        blink_cursor: {
-          '0%, 50%': { opacity: '1' },
-          '51%, 100%': { opacity: '0' },
-        },
-        scanline: {
-          '0%': { transform: 'translateX(-100%)' },
-          '100%': { transform: 'translateX(100%)' },
-        },
+        display: ['Syne', 'sans-serif'],
+        body: ['DM Sans', 'sans-serif'],
+        mono: ['DM Mono', 'monospace'],
       },
       animation: {
-        radar: 'radar 3s linear infinite',
-        'pulse-ring': 'pulse_ring 2s ease-out infinite',
-        typewriter: 'typewriter 1.5s steps(40, end)',
-        blink: 'blink_cursor 1s step-end infinite',
-        scanline: 'scanline 2s linear infinite',
+        'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+        'shimmer': 'shimmer 2s linear infinite',
+        'fadeInUp': 'fadeInUp 0.3s ease-out forwards',
+        'slideInRight': 'slideInRight 0.25s ease-out forwards',
+      },
+      keyframes: {
+        shimmer: {
+          '0%': { backgroundPosition: '-200% center' },
+          '100%': { backgroundPosition: '200% center' },
+        },
+        fadeInUp: {
+          '0%': { opacity: '0', transform: 'translateY(8px)' },
+          '100%': { opacity: '1', transform: 'translateY(0)' },
+        },
+        slideInRight: {
+          '0%': { opacity: '0', transform: 'translateX(16px)' },
+          '100%': { opacity: '1', transform: 'translateX(0)' },
+        },
       },
     },
   },

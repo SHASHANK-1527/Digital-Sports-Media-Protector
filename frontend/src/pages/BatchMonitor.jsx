@@ -1,31 +1,42 @@
 import { useEffect, useState } from 'react'
-import { motion } from 'framer-motion'
-import Navbar from '../components/Navbar'
+import { useNavigate, Link, useLocation } from 'react-router-dom'
+import { motion, AnimatePresence } from 'framer-motion'
+import { onAuthStateChanged } from 'firebase/auth'
+import { 
+  LayoutDashboard, 
+  PlusSquare, 
+  LogOut, 
+  Search, 
+  User,
+  ArrowLeft,
+  List,
+  Play,
+  CheckCircle2,
+  AlertTriangle,
+  Download,
+  ExternalLink
+} from 'lucide-react'
+import { auth } from '../services/firebase'
 import { batchDetect, getReportUrl } from '../services/api'
-
-const verdictColors = {
-  Pirated: { badge: 'bg-dap-danger', text: 'text-dap-danger' },
-  Suspicious: { badge: 'bg-dap-accent', text: 'text-dap-accent' },
-  Original: { badge: 'bg-dap-success', text: 'text-dap-success' },
-  Unknown: { badge: 'bg-dap-text-secondary', text: 'text-dap-text-secondary' },
-  Error: { badge: 'bg-dap-text-secondary', text: 'text-dap-text-secondary' },
-}
 
 export default function BatchMonitor() {
   const [urlsText, setUrlsText] = useState('')
   const [results, setResults] = useState([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  const [progressIndex, setProgressIndex] = useState(1)
-  const [urlCount, setUrlCount] = useState(0)
+  const [progressIndex, setProgressIndex] = useState(0)
+  
+  const navigate = useNavigate()
+  const location = useLocation()
 
   useEffect(() => {
-    if (!loading || urlCount === 0) return undefined
-    const interval = window.setInterval(() => {
-      setProgressIndex((value) => Math.min(value + 1, urlCount))
-    }, 700)
-    return () => window.clearInterval(interval)
-  }, [loading, urlCount])
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (!user) {
+        navigate('/admin')
+      }
+    })
+    return unsubscribe
+  }, [navigate])
 
   const urlLines = urlsText
     .split('\n')
@@ -41,175 +52,223 @@ export default function BatchMonitor() {
     setLoading(true)
     setError('')
     setResults([])
-    setUrlCount(urlLines.length)
     setProgressIndex(1)
+
+    // Simulating sequential log
+    const logInterval = setInterval(() => {
+        setProgressIndex(prev => Math.min(prev + 1, urlLines.length))
+    }, 1500)
 
     try {
       const response = await batchDetect(urlLines)
       setResults(response.data || [])
+      clearInterval(logInterval)
+      setProgressIndex(urlLines.length)
     } catch (err) {
-      setError(err.response?.data?.detail || err.message || 'Batch detection failed. Please try again.')
+      setError(err.response?.data?.detail || err.message || 'Batch detection failed.')
+      clearInterval(logInterval)
     } finally {
       setLoading(false)
     }
   }
 
-  const handleDownload = (detectionId) => {
-    window.open(getReportUrl(detectionId), '_blank')
-  }
+  const navItems = [
+    { label: 'Dashboard', icon: LayoutDashboard, path: '/admin/dashboard' },
+    { label: 'Register Asset', icon: PlusSquare, path: '/admin/register' },
+  ]
 
   return (
-    <div className="min-h-screen bg-dap-bg text-dap-text-primary">
-      <Navbar />
-      <main className="mx-auto max-w-6xl px-4 py-12 sm:px-6">
-        <motion.div
-          className="space-y-8"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-        >
-          {/* Input Form */}
-          <motion.div
-            className="border border-dap-border bg-dap-bg/50 backdrop-blur-sm p-8"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.5, delay: 0.1 }}
-          >
-            <div className="mb-8 space-y-3">
-              <p className="font-mono text-xs text-dap-primary">[BATCH_INTELLIGENCE_SCAN]</p>
-              <h1 className="font-mono text-3xl font-bold text-dap-text-primary">BATCH_MONITOR</h1>
-              <p className="font-mono text-xs text-dap-text-secondary max-w-2xl">
-                // submit_up_to_10_urls_for_concurrent_detection
-              </p>
+    <div className="min-h-screen bg-bg-void text-text-primary flex">
+      
+      {/* Sidebar */}
+      <aside className="w-60 bg-[#0C0F14] border-r border-white/[0.07] flex flex-col fixed inset-y-0 z-50">
+        <div className="p-6">
+          <Link to="/" className="flex items-center gap-3 group">
+            <div className="w-8 h-8 bg-brand-primary flex items-center justify-center rounded">
+              <span className="font-display font-black text-bg-void text-xl">G</span>
             </div>
+            <div className="flex flex-col">
+              <span className="font-display font-bold text-white tracking-tighter leading-none">GUARD</span>
+              <span className="font-mono text-[9px] text-brand-primary tracking-widest leading-none mt-1">SECURITY</span>
+            </div>
+          </Link>
+        </div>
 
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <div>
-                <label className="block font-mono text-xs text-dap-text-secondary uppercase tracking-[0.15em] mb-2">
-                  URL_List
-                </label>
+        <nav className="flex-1 px-4 py-6 space-y-2">
+          {navItems.map((item) => {
+            const isActive = location.pathname === item.path
+            return (
+              <Link
+                key={item.path}
+                to={item.path}
+                className={`flex items-center gap-3 px-4 py-3 rounded-lg font-mono text-xs uppercase tracking-widest transition-all group ${
+                  isActive 
+                    ? 'bg-[#1A2130] text-brand-primary border-l-[3px] border-l-brand-primary' 
+                    : 'text-brand-neutral hover:bg-[#1A2130] hover:text-white'
+                }`}
+              >
+                <item.icon className={`w-4 h-4 ${isActive ? 'text-brand-primary' : 'text-brand-neutral group-hover:text-white'}`} />
+                {item.label}
+              </Link>
+            )
+          })}
+        </nav>
+
+        <div className="p-4 border-t border-white/[0.07] space-y-4">
+          <div className="flex items-center gap-3 px-2">
+            <div className="w-8 h-8 rounded-full bg-brand-primary/10 flex items-center justify-center">
+              <User className="w-4 h-4 text-brand-primary" />
+            </div>
+            <div className="flex flex-col truncate">
+              <span className="font-mono text-[10px] text-brand-neutral truncate">{auth.currentUser?.email}</span>
+              <span className="font-mono text-[9px] text-brand-primary uppercase tracking-tighter">Verified Owner</span>
+            </div>
+          </div>
+          <button
+            onClick={() => { auth.signOut(); navigate('/admin') }}
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg font-mono text-xs uppercase tracking-widest text-brand-secondary hover:bg-brand-secondary/5 transition-all"
+          >
+            <LogOut className="w-4 h-4" />
+            Sign Out
+          </button>
+        </div>
+      </aside>
+
+      {/* Main Content */}
+      <main className="flex-1 ml-60 p-8">
+        
+        <div className="max-w-5xl mx-auto">
+          <div className="mb-10">
+            <Link to="/admin/dashboard" className="inline-flex items-center gap-2 font-mono text-[10px] text-brand-neutral hover:text-brand-primary transition-colors uppercase tracking-widest mb-4">
+              <ArrowLeft className="w-3 h-3" />
+              Back to Dashboard
+            </Link>
+            <h1 className="font-display font-bold text-3xl uppercase tracking-wider text-white">Batch Intelligence Scan</h1>
+            <p className="font-body text-brand-neutral mt-2">Concurrent forensic analysis for high-volume content streams</p>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            
+            {/* Left: Input */}
+            <div className="lg:col-span-1 space-y-6">
+              <div className="space-y-3">
+                <div className="flex justify-between items-end pl-1">
+                  <label className="font-mono text-[11px] text-brand-primary uppercase tracking-widest">Scan Queue</label>
+                  <span className="font-mono text-[10px] text-brand-neutral">{urlLines.length}/10 URLs</span>
+                </div>
                 <textarea
                   value={urlsText}
-                  onChange={(event) => setUrlsText(event.target.value)}
-                  rows={10}
-                  placeholder="https://example.com/media1.jpg&#10;https://example.com/media2.mp4"
-                  className="w-full bg-dap-bg border border-dap-border px-4 py-4 font-mono text-sm text-dap-text-primary outline-none transition-colors focus:border-dap-primary focus:ring-1 focus:ring-dap-primary/30"
+                  onChange={(e) => setUrlsText(e.target.value)}
+                  placeholder="https://social-platform.com/video/123&#10;https://illegal-stream.net/live/456"
+                  className="w-full bg-[#12171F] border border-white/10 rounded-lg p-4 font-mono text-xs text-white h-64 focus:outline-none focus:border-brand-primary transition-all resize-none"
                 />
               </div>
 
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <p className="font-mono text-xs text-dap-text-secondary">
-                  {urlLines.length}/{10} URL{urlLines.length === 1 ? '' : 's'}
-                </p>
-                <motion.button
-                  type="submit"
-                  disabled={!isValid || loading}
-                  className="px-6 py-3 border border-dap-primary text-dap-primary font-mono text-xs uppercase tracking-wider hover:bg-dap-primary/10 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                  whileHover={!loading && isValid ? { scale: 1.01, boxShadow: '0 0 30px rgba(58, 110, 165, 0.3)' } : {}}
-                  whileTap={!loading && isValid ? { scale: 0.99 } : {}}
-                >
-                  {loading ? '[SCANNING...]' : '[INITIATE_SCAN]'}
-                </motion.button>
-              </div>
-
-              {(error || (!isValid && urlsText.trim().length > 0)) && (
-                <motion.p
-                  className="font-mono text-xs text-dap-danger border border-dap-danger/30 bg-dap-danger/5 p-2"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                >
-                  ⚠ {error || 'Provide 1-10 URLs, one per line'}
-                </motion.p>
-              )}
+              <button
+                onClick={handleSubmit}
+                disabled={!isValid || loading}
+                className="w-full bg-brand-primary text-bg-void font-display font-bold uppercase tracking-widest rounded-lg py-4 flex items-center justify-center gap-3 hover:brightness-110 transition-all disabled:opacity-40"
+              >
+                {loading ? (
+                  <div className="w-5 h-5 border-2 border-bg-void border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <Play className="w-4 h-4" />
+                )}
+                Initiate Batch Scan
+              </button>
 
               {loading && (
-                <motion.div
-                  className="bg-dap-border/20 p-3 border border-dap-border font-mono text-sm text-dap-primary"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                >
-                  $ scanning {progressIndex}/{urlCount} url{urlCount === 1 ? '' : 's'}
-                  <motion.span
-                    animate={{ opacity: [1, 0] }}
-                    transition={{ duration: 0.5, repeat: Infinity }}
-                  >
-                    █
-                  </motion.span>
-                </motion.div>
+                <div className="bg-brand-primary/5 border border-brand-primary/20 rounded-lg p-4 space-y-3">
+                   <div className="flex items-center gap-3 text-brand-primary font-mono text-[10px] uppercase tracking-widest">
+                      <div className="w-2 h-2 rounded-full bg-brand-primary animate-pulse" />
+                      Processing Intelligence Log
+                   </div>
+                   <div className="space-y-1">
+                      {urlLines.slice(0, progressIndex).map((url, i) => (
+                        <div key={i} className="font-mono text-[9px] text-brand-neutral truncate opacity-60">
+                           {`[LOG] ANALYZING_SOURCE: ${url.substring(0, 40)}...`}
+                        </div>
+                      ))}
+                   </div>
+                </div>
               )}
-            </form>
-          </motion.div>
+            </div>
 
-          {/* Results Table */}
-          {results.length > 0 && (
-            <motion.div
-              className="border border-dap-border bg-dap-bg/30 backdrop-blur-sm overflow-hidden"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.2 }}
-            >
-              <div className="border-b border-dap-border px-6 py-4">
-                <h2 className="font-mono text-lg font-bold text-dap-text-primary">[BATCH_RESULTS]</h2>
-              </div>
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm text-dap-text-secondary font-mono">
-                  <thead className="bg-dap-border/20 text-xs uppercase tracking-[0.15em] text-dap-text-secondary border-b border-dap-border">
-                    <tr>
-                      <th className="px-4 py-3 text-left">URL</th>
-                      <th className="px-4 py-3 text-left">Verdict</th>
-                      <th className="px-4 py-3 text-left">Confidence</th>
-                      <th className="px-4 py-3 text-left">Owner</th>
-                      <th className="px-4 py-3 text-left">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-dap-border">
-                    {results.map((item, index) => {
-                      const verdict = item.verdict || (item.error ? 'Error' : 'Unknown')
-                      const colors = verdictColors[verdict] || verdictColors.Unknown
-                      const confidence = typeof item.confidence_score === 'number' ? `${Math.round(item.confidence_score * 100)}%` : '-'
-                      return (
-                        <motion.tr
-                          key={`${item.url}-${index}`}
-                          className="bg-dap-bg/30 hover:bg-dap-border/10 border-l-4"
-                          style={{ borderLeftColor: verdict === 'Pirated' ? '#E5484D' : verdict === 'Suspicious' ? '#FFB020' : '#4C9A6A' }}
-                          initial={{ opacity: 0, x: -20 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          transition={{ duration: 0.3, delay: index * 0.05 }}
-                          whileHover={{ x: 4 }}
-                        >
-                          <td className="px-4 py-3 truncate max-w-xs">{item.url}</td>
-                          <td className="px-4 py-3">
-                            <span className={`font-mono text-xs font-bold ${colors.text}`}>
-                              [{verdict.toUpperCase()}]
-                            </span>
-                            {item.error && <p className="mt-1 text-xs text-dap-danger">{item.error}</p>}
+            {/* Right: Results Table */}
+            <div className="lg:col-span-2 space-y-4">
+               <div className="flex items-center justify-between px-2">
+                 <h2 className="font-display font-bold text-xl uppercase tracking-wider text-white">Batch Results</h2>
+                 <List className="w-5 h-5 text-brand-neutral opacity-50" />
+               </div>
+
+               <div className="bg-[#12171F] border border-white/[0.07] rounded-lg overflow-hidden min-h-[400px]">
+                  <table className="w-full text-left">
+                    <thead>
+                      <tr className="bg-[#1A2130] border-b border-white/[0.07]">
+                        <th className="px-6 py-4 font-mono text-[11px] text-brand-neutral uppercase tracking-widest">Source URL</th>
+                        <th className="px-6 py-4 font-mono text-[11px] text-brand-neutral uppercase tracking-widest">Verdict</th>
+                        <th className="px-6 py-4 font-mono text-[11px] text-brand-neutral uppercase tracking-widest">Confidence</th>
+                        <th className="px-6 py-4 font-mono text-[11px] text-brand-neutral uppercase tracking-widest">Action</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-white/[0.07]">
+                      {results.map((item, idx) => (
+                        <tr key={idx} className="hover:bg-[#1A2130] transition-colors">
+                          <td className="px-6 py-4">
+                            <div className="font-mono text-xs text-brand-neutral truncate max-w-[200px]" title={item.url}>
+                              {item.url}
+                            </div>
                           </td>
-                          <td className="px-4 py-3">{confidence}</td>
-                          <td className="px-4 py-3">{item.matched_owner || '-'}</td>
-                          <td className="px-4 py-3">
+                          <td className="px-6 py-4">
+                             {item.verdict === 'Pirated' ? (
+                                <span className="flex items-center gap-2 text-brand-secondary font-mono text-[10px] font-bold uppercase">
+                                   <AlertTriangle className="w-3 h-3" /> Pirated
+                                </span>
+                             ) : item.verdict === 'Original' ? (
+                                <span className="flex items-center gap-2 text-brand-primary font-mono text-[10px] font-bold uppercase">
+                                   <CheckCircle2 className="w-3 h-3" /> Original
+                                </span>
+                             ) : (
+                                <span className="font-mono text-[10px] text-brand-neutral uppercase">Clean</span>
+                             )}
+                          </td>
+                          <td className="px-6 py-4 font-mono text-xs text-white">
+                            {typeof item.confidence_score === 'number' ? `${Math.round(item.confidence_score * 100)}%` : '---'}
+                          </td>
+                          <td className="px-6 py-4">
                             {item.verdict === 'Pirated' && item.detection_id ? (
-                              <motion.button
-                                type="button"
-                                onClick={() => handleDownload(item.detection_id)}
-                                className="px-3 py-1 border border-dap-danger text-dap-danger hover:bg-dap-danger/10 text-xs transition-colors"
-                                whileHover={{ scale: 1.05 }}
-                                whileTap={{ scale: 0.95 }}
-                              >
-                                [REPORT]
-                              </motion.button>
+                               <button 
+                                 onClick={() => window.open(getReportUrl(item.detection_id), '_blank')}
+                                 className="text-brand-secondary hover:text-white transition-colors"
+                               >
+                                 <Download className="w-4 h-4" />
+                               </button>
                             ) : (
-                              <span className="text-xs text-dap-text-secondary">-</span>
+                               <Link to={`/result/${item.detection_id || ''}`} className="text-brand-primary hover:text-white transition-colors">
+                                 <ExternalLink className="w-4 h-4" />
+                               </Link>
                             )}
                           </td>
-                        </motion.tr>
-                      )
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            </motion.div>
-          )}
-        </motion.div>
+                        </tr>
+                      ))}
+                      {results.length === 0 && !loading && (
+                        <tr>
+                          <td colSpan="4" className="px-6 py-24 text-center">
+                             <div className="opacity-20 flex flex-col items-center gap-3">
+                                <Search className="w-12 h-12 text-brand-neutral" />
+                                <span className="font-mono text-xs uppercase tracking-[0.2em]">Queue Empty — Awaiting Input</span>
+                             </div>
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+               </div>
+            </div>
+
+          </div>
+        </div>
+
       </main>
     </div>
   )

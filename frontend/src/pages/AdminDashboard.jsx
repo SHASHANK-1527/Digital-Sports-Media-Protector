@@ -1,35 +1,24 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useNavigate, Link } from 'react-router-dom'
+import { useNavigate, Link, useLocation } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { onAuthStateChanged } from 'firebase/auth'
+import { 
+  LayoutDashboard, 
+  PlusSquare, 
+  LogOut, 
+  Database, 
+  Search, 
+  AlertTriangle,
+  User,
+  Calendar
+} from 'lucide-react'
 import { auth } from '../services/firebase'
 import { getAssets } from '../services/api'
 import { signOut } from '../services/auth'
 import { useAnomalyListener } from '../hooks/useAnomalyListener'
 import AnomalyAlert from '../components/AnomalyAlert'
 import AssetTable from '../components/AssetTable'
-
-// Count-up number animation component
-function CountUpNumber({ value }) {
-  const [displayValue, setDisplayValue] = useState(0)
-
-  useEffect(() => {
-    let current = 0
-    const increment = value / 30
-    const timer = setInterval(() => {
-      current += increment
-      if (current >= value) {
-        setDisplayValue(value)
-        clearInterval(timer)
-      } else {
-        setDisplayValue(Math.round(current))
-      }
-    }, 30)
-    return () => clearInterval(timer)
-  }, [value])
-
-  return <>{displayValue}</>
-}
+import StatCard from '../components/ui/StatCard'
 
 export default function AdminDashboard() {
   const [user, setUser] = useState(null)
@@ -37,6 +26,7 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const navigate = useNavigate()
+  const location = useLocation()
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
@@ -81,153 +71,141 @@ export default function AdminDashboard() {
     navigate('/admin')
   }
 
-  return (
-    <div className="min-h-screen bg-dap-bg px-4 py-10 text-dap-text-primary sm:px-6">
-      <div className="mx-auto max-w-6xl space-y-8">
-        {alerts.length > 0 && <AnomalyAlert alert={alerts[0]} />}
+  const navItems = [
+    { label: 'Dashboard', icon: LayoutDashboard, path: '/admin/dashboard' },
+    { label: 'Register Asset', icon: PlusSquare, path: '/admin/register' },
+  ]
 
-        <motion.div
-          className="space-y-8"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-        >
-          {/* Header */}
-          <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
-            <div className="space-y-2">
-              <motion.p className="font-mono text-xs text-dap-primary">[ADMIN_CONSOLE_V2]</motion.p>
-              <h1 className="font-mono text-3xl font-bold text-dap-text-primary">ASSET MANAGEMENT</h1>
+  return (
+    <div className="min-h-screen bg-bg-void text-text-primary flex">
+      
+      {/* Sidebar */}
+      <aside className="w-60 bg-[#0C0F14] border-r border-white/[0.07] flex flex-col fixed inset-y-0 z-50">
+        <div className="p-6">
+          <Link to="/" className="flex items-center gap-3 group">
+            <div className="w-8 h-8 bg-brand-primary flex items-center justify-center rounded">
+              <span className="font-display font-black text-bg-void text-xl">G</span>
             </div>
-            <motion.div
-              className="flex flex-wrap gap-3"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 0.5, delay: 0.1 }}
-            >
-              <motion.div
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
+            <div className="flex flex-col">
+              <span className="font-display font-bold text-white tracking-tighter leading-none">GUARD</span>
+              <span className="font-mono text-[9px] text-brand-primary tracking-widest leading-none mt-1">SECURITY</span>
+            </div>
+          </Link>
+        </div>
+
+        <nav className="flex-1 px-4 py-6 space-y-2">
+          {navItems.map((item) => {
+            const isActive = location.pathname === item.path
+            return (
+              <Link
+                key={item.path}
+                to={item.path}
+                className={`flex items-center gap-3 px-4 py-3 rounded-lg font-mono text-xs uppercase tracking-widest transition-all group ${
+                  isActive 
+                    ? 'bg-[#1A2130] text-brand-primary border-l-[3px] border-l-brand-primary' 
+                    : 'text-brand-neutral hover:bg-[#1A2130] hover:text-white'
+                }`}
               >
-                <Link
-                  to="/admin/register"
-                  className="inline-block px-6 py-3 border border-dap-accent text-dap-accent hover:bg-dap-accent/10 font-mono text-xs uppercase tracking-wider transition-colors"
-                >
-                  [REGISTER_ASSET]
-                </Link>
-              </motion.div>
-              <motion.button
-                type="button"
-                onClick={handleSignOut}
-                className="px-6 py-3 border border-dap-text-secondary text-dap-text-secondary hover:border-dap-danger hover:text-dap-danger font-mono text-xs uppercase tracking-wider transition-colors"
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-              >
-                [LOGOUT]
-              </motion.button>
-            </motion.div>
+                <item.icon className={`w-4 h-4 ${isActive ? 'text-brand-primary' : 'text-brand-neutral group-hover:text-white'}`} />
+                {item.label}
+              </Link>
+            )
+          })}
+        </nav>
+
+        <div className="p-4 border-t border-white/[0.07] space-y-4">
+          <div className="flex items-center gap-3 px-2">
+            <div className="w-8 h-8 rounded-full bg-brand-primary/10 flex items-center justify-center">
+              <User className="w-4 h-4 text-brand-primary" />
+            </div>
+            <div className="flex flex-col truncate">
+              <span className="font-mono text-[10px] text-brand-neutral truncate">{user?.email}</span>
+              <span className="font-mono text-[9px] text-brand-primary uppercase tracking-tighter">Verified Owner</span>
+            </div>
+          </div>
+          <button
+            onClick={handleSignOut}
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg font-mono text-xs uppercase tracking-widest text-brand-secondary hover:bg-brand-secondary/5 transition-all"
+          >
+            <LogOut className="w-4 h-4" />
+            Sign Out
+          </button>
+        </div>
+      </aside>
+
+      {/* Main Content */}
+      <main className="flex-1 ml-60 p-8">
+        
+        {/* Top Header */}
+        <div className="flex items-center justify-between mb-10">
+          <div className="space-y-1">
+            <h1 className="font-mono text-xs text-brand-neutral uppercase tracking-[0.4em]">Dashboard</h1>
+            <div className="flex items-center gap-2 font-body text-sm text-brand-neutral opacity-60">
+              <Calendar className="w-4 h-4" />
+              {new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+            </div>
           </div>
 
-          {/* Stat cards with colored borders and count-up */}
-          <motion.div
-            className="grid gap-4 sm:grid-cols-3"
-            variants={{
-              hidden: { opacity: 0 },
-              show: {
-                opacity: 1,
-                transition: {
-                  staggerChildren: 0.1,
-                },
-              },
-            }}
-            initial="hidden"
-            animate="show"
+          <Link
+            to="/admin/register"
+            className="bg-brand-primary text-bg-void px-6 py-2.5 rounded font-display font-bold text-sm uppercase tracking-widest flex items-center gap-2 hover:brightness-110 transition-all"
           >
-            {/* Assets Card */}
-            <motion.div
-              className="border-l-4 border-dap-primary bg-dap-bg/30 p-6 backdrop-blur-sm"
-              style={{ borderLeftColor: '#3A6EA5' }}
-              variants={{ hidden: { opacity: 0, x: -10 }, show: { opacity: 1, x: 0 } }}
-              whileHover={{ translateX: 4 }}
-            >
-              <p className="font-mono text-xs text-dap-text-secondary uppercase tracking-[0.15em]">[Registered_Assets]</p>
-              <motion.p className="mt-3 font-mono text-3xl font-bold text-dap-primary">
-                <CountUpNumber value={assets.length} />
-              </motion.p>
-            </motion.div>
+            <PlusSquare className="w-4 h-4" />
+            Register New Asset
+          </Link>
+        </div>
 
-            {/* Detections Card */}
-            <motion.div
-              className="border-l-4 border-dap-accent bg-dap-bg/30 p-6 backdrop-blur-sm"
-              style={{ borderLeftColor: '#FFB020' }}
-              variants={{ hidden: { opacity: 0, x: -10 }, show: { opacity: 1, x: 0 } }}
-              whileHover={{ translateX: 4 }}
-            >
-              <p className="font-mono text-xs text-dap-text-secondary uppercase tracking-[0.15em]">[Total_Detections]</p>
-              <motion.p className="mt-3 font-mono text-3xl font-bold text-dap-accent">
-                <CountUpNumber value={totalDetections} />
-              </motion.p>
-            </motion.div>
+        {/* Alerts */}
+        {alerts.length > 0 && <AnomalyAlert alert={alerts[0]} />}
 
-            {/* Alerts Card */}
-            <motion.div
-              className="border-l-4 border-dap-danger bg-dap-bg/30 p-6 backdrop-blur-sm"
-              style={{ borderLeftColor: '#E5484D' }}
-              variants={{ hidden: { opacity: 0, x: -10 }, show: { opacity: 1, x: 0 } }}
-              whileHover={{ translateX: 4 }}
-            >
-              <p className="font-mono text-xs text-dap-text-secondary uppercase tracking-[0.15em]">[Piracy_Alerts]</p>
-              <motion.p className="mt-3 font-mono text-3xl font-bold text-dap-danger">
-                <CountUpNumber value={alerts.length} />
-              </motion.p>
-            </motion.div>
-          </motion.div>
+        {/* Stats Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+          <StatCard 
+            label="Registered Assets" 
+            value={assets.length} 
+            icon={Database} 
+            accentColor="#00E5A0" 
+          />
+          <StatCard 
+            label="Total Detections" 
+            value={totalDetections} 
+            icon={Search} 
+            accentColor="#00E5A0" 
+          />
+          <StatCard 
+            label="Piracy Alerts" 
+            value={alerts.length} 
+            icon={AlertTriangle} 
+            accentColor="#FF4F4F" 
+          />
+        </div>
 
-          {/* Asset Table Section */}
-          <motion.div
-            className="border border-dap-border bg-dap-bg/30 backdrop-blur-sm p-8"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.3 }}
-          >
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-              <div className="space-y-1">
-                <h2 className="font-mono text-lg font-bold text-dap-text-primary">[ASSET_REGISTRY]</h2>
-                <p className="font-mono text-xs text-dap-text-secondary">
-                  {loading ? 'Loading...' : `${assets.length} assets managed by ${ownerName}`}
-                </p>
-              </div>
+        {/* Asset Registry */}
+        <div className="space-y-4">
+          <div className="flex items-center justify-between px-2">
+            <h2 className="font-display font-bold text-xl uppercase tracking-wider text-white">Asset Registry</h2>
+            <div className="font-mono text-[10px] text-brand-neutral uppercase tracking-widest">
+              Live Monitor: {assets.length} Elements
             </div>
+          </div>
 
-            {error && (
-              <motion.p
-                className="mt-4 border border-dap-danger/30 bg-dap-danger/10 p-3 font-mono text-xs text-dap-danger"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-              >
-                ⚠ {error}
-              </motion.p>
-            )}
+          {loading ? (
+            <div className="space-y-3 animate-pulse">
+              {[...Array(5)].map((_, i) => (
+                <div key={i} className="h-20 bg-white/[0.05] rounded-lg" />
+              ))}
+            </div>
+          ) : error ? (
+            <div className="bg-brand-secondary/5 border border-brand-secondary/20 p-6 rounded-lg text-center">
+               <AlertTriangle className="w-8 h-8 text-brand-secondary mx-auto mb-3" />
+               <p className="font-mono text-sm text-brand-secondary">{error}</p>
+            </div>
+          ) : (
+            <AssetTable assets={assets} />
+          )}
+        </div>
 
-            {loading ? (
-              <div className="mt-6 space-y-3">
-                {[...Array(3)].map((_, i) => (
-                  <motion.div
-                    key={i}
-                    className="h-16 bg-dap-border/20 animate-pulse"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: i * 0.1 }}
-                  />
-                ))}
-              </div>
-            ) : (
-              <div className="mt-6">
-                <AssetTable assets={assets} />
-              </div>
-            )}
-          </motion.div>
-        </motion.div>
-      </div>
+      </main>
     </div>
   )
 }

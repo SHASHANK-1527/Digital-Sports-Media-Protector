@@ -1,131 +1,84 @@
-import { useState } from 'react'
-import { motion } from 'framer-motion'
+import React from 'react';
+import { motion } from 'framer-motion';
 
 export default function ComparisonView({ submittedUrl, originalUrl, similarityScore, matchStart, matchEnd }) {
-  const [sliderPos, setSliderPos] = useState(50)
-  const segments = 20
-  const segmentSize = 100 / segments
+  const getGradient = (score) => {
+    if (score > 70) return 'from-[#00E5A0] to-[#00E5A0]/20';
+    if (score >= 40) return 'from-[#FFB340] to-[#FFB340]/20';
+    return 'from-[#FF4F4F] to-[#FF4F4F]/20';
+  };
 
-  // Color coding for segments
-  const getSegmentColor = (index) => {
-    const percentage = ((index + 1) / segments) * 100
-    if (percentage <= 40) return '#4C9A6A' // Green (safe)
-    if (percentage <= 70) return '#FFB020' // Amber (warning)
-    return '#E5484D' // Red (danger)
-  }
+  const formatTime = (seconds) => {
+    if (seconds == null) return null;
+    return new Date(seconds * 1000).toISOString().substr(14, 5);
+  };
 
   return (
-    <motion.div
-      className="border border-dap-border bg-dap-bg/50 backdrop-blur-sm p-6"
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5 }}
-    >
-      <h3 className="font-mono text-lg font-bold text-dap-text-primary">[COMPARISON_ANALYSIS]</h3>
+    <div className="space-y-8">
+      <div className="relative grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
+        {/* VS Divider */}
+        <div className="hidden md:flex absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-10 w-12 h-12 rounded-full bg-bg-void border border-white/10 items-center justify-center font-display font-bold text-brand-neutral/50 text-sm">
+          VS
+        </div>
 
-      {/* Image Slider */}
-      <motion.div
-        className="mt-6 relative overflow-hidden rounded-lg border border-dap-border aspect-video bg-dap-border/20"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.5, delay: 0.1 }}
-      >
-        {/* Original image */}
-        {originalUrl ? (
-          <img src={originalUrl} alt="Matched original" className="absolute inset-0 w-full h-full object-cover" />
-        ) : (
-          <div className="absolute inset-0 w-full h-full flex items-center justify-center bg-dap-border/30 text-dap-text-secondary font-mono text-sm">
-            NO_PREVIEW_AVAILABLE
+        {/* Submitted Content */}
+        <div className="space-y-3">
+          <h4 className="font-mono text-[11px] text-brand-neutral uppercase tracking-widest px-1">Submitted Content</h4>
+          <div className="bg-bg-surface rounded-xl border border-white/[0.07] overflow-hidden aspect-video relative group">
+            {submittedUrl ? (
+              <img src={submittedUrl} alt="Submitted" className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity" />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center font-mono text-xs text-brand-neutral/30">NO_PREVIEW</div>
+            )}
+            <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent pointer-events-none" />
+          </div>
+        </div>
+
+        {/* Original Asset */}
+        <div className="space-y-3">
+          <h4 className="font-mono text-[11px] text-brand-primary uppercase tracking-widest px-1">Original Asset</h4>
+          <div className="bg-bg-surface rounded-xl border border-brand-primary/20 overflow-hidden aspect-video relative group">
+            {originalUrl ? (
+              <img src={originalUrl} alt="Original" className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity" />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center font-mono text-xs text-brand-neutral/30">NO_PREVIEW</div>
+            )}
+            <div className="absolute inset-0 bg-gradient-to-t from-brand-primary/20 to-transparent pointer-events-none" />
+          </div>
+        </div>
+      </div>
+
+      {/* Similarity Bar */}
+      <div className="space-y-4 pt-4">
+        <div className="flex justify-between items-end">
+          <span className="font-mono text-[11px] text-brand-neutral uppercase tracking-widest">Similarity Analysis</span>
+          <span className="font-display font-bold text-2xl text-white">
+            <span className="text-brand-neutral text-sm font-normal mr-2 tracking-tighter">SIMILARITY:</span>
+            {similarityScore}%
+          </span>
+        </div>
+        
+        <div className="h-2 w-full bg-white/[0.05] rounded-full overflow-hidden">
+          <motion.div 
+            className={`h-full bg-gradient-to-r ${getGradient(similarityScore)}`}
+            initial={{ width: 0 }}
+            animate={{ width: `${similarityScore}%` }}
+            transition={{ duration: 1, ease: "easeOut" }}
+          />
+        </div>
+
+        {/* Timestamps */}
+        {matchStart != null && matchEnd != null && (
+          <div className="flex items-center gap-4 pt-2">
+             <div className="px-3 py-2 bg-brand-warning/10 border border-brand-warning/20 rounded">
+                <span className="font-mono text-[10px] text-brand-warning uppercase tracking-widest block mb-1">Time Range Match</span>
+                <span className="font-mono text-2xl text-brand-warning font-bold">
+                  {formatTime(matchStart)} <span className="text-sm opacity-50 mx-1">→</span> {formatTime(matchEnd)}
+                </span>
+             </div>
           </div>
         )}
-
-        {/* Submitted image (overlay) */}
-        <motion.div
-          className="absolute inset-0 overflow-hidden"
-          style={{ width: `${sliderPos}%` }}
-          animate={{ width: `${sliderPos}%` }}
-        >
-          {submittedUrl ? (
-            <img src={submittedUrl} alt="Submitted" className="absolute inset-0 w-full h-full object-cover" style={{ left: `${-(100 - sliderPos)}%` }} />
-          ) : (
-            <div className="absolute inset-0 w-full h-full flex items-center justify-center bg-dap-border/30 text-dap-text-secondary font-mono text-sm">
-              NO_PREVIEW
-            </div>
-          )}
-        </motion.div>
-
-        {/* Slider handle */}
-        <motion.div
-          className="absolute top-0 bottom-0 w-1 bg-dap-primary cursor-col-resize"
-          style={{ left: `${sliderPos}%` }}
-          drag="x"
-          dragConstraints={{ left: 0, right: 1000 }}
-          onDrag={(event, info) => {
-            const rect = event.currentTarget.parentElement.getBoundingClientRect()
-            const newPos = Math.max(0, Math.min(100, (info.x / rect.width) * 100))
-            setSliderPos(newPos)
-          }}
-          whileHover={{ scaleY: 1.2, opacity: 1 }}
-        >
-          <div className="absolute left-1/2 -translate-x-1/2 -top-2 -bottom-2 w-10 flex items-center justify-center">
-            <div className="w-full h-1 bg-dap-primary/50 rounded-full" />
-          </div>
-        </motion.div>
-
-        {/* Labels */}
-        <div className="absolute bottom-2 left-2 font-mono text-xs text-white bg-black/50 px-2 py-1">SUBMITTED</div>
-        <div className="absolute bottom-2 right-2 font-mono text-xs text-white bg-black/50 px-2 py-1">ORIGINAL</div>
-      </motion.div>
-
-      {/* Segmented Similarity Bar */}
-      <motion.div
-        className="mt-6 space-y-3"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.5, delay: 0.2 }}
-      >
-        <div className="flex justify-between items-center">
-          <p className="font-mono text-xs text-dap-text-secondary">[SIMILARITY_ANALYSIS]</p>
-          <p className="font-mono text-sm text-dap-primary font-bold">{Math.round(similarityScore)}%</p>
-        </div>
-
-        <div className="flex gap-0.5 h-4 bg-dap-border/20 p-1">
-          {Array.from({ length: segments }).map((_, index) => {
-            const fillPercentage = Math.max(0, Math.min(100, (similarityScore / segmentSize - index) * 100))
-            return (
-              <motion.div
-                key={index}
-                className="flex-1"
-                style={{
-                  backgroundColor: getSegmentColor(index),
-                  opacity: fillPercentage > 0 ? fillPercentage / 100 : 0.1,
-                }}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: fillPercentage > 0 ? fillPercentage / 100 : 0.1 }}
-                transition={{ duration: 0.5, delay: index * 0.04 }}
-              />
-            )
-          })}
-        </div>
-
-        <div className="flex justify-between font-mono text-xs text-dap-text-secondary">
-          <span>0%</span>
-          <span>50%</span>
-          <span>100%</span>
-        </div>
-      </motion.div>
-
-      {/* Match timing */}
-      {matchStart != null && matchEnd != null && (
-        <motion.div
-          className="mt-4 border-l-4 border-dap-accent bg-dap-border/20 p-3 font-mono text-xs text-dap-text-secondary"
-          initial={{ opacity: 0, x: -10 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.4, delay: 0.3 }}
-        >
-          [MATCH_FOUND] {new Date(matchStart * 1000).toISOString().substr(11, 8)} → {new Date(matchEnd * 1000).toISOString().substr(11, 8)}
-        </motion.div>
-      )}
-    </motion.div>
-  )
+      </div>
+    </div>
+  );
 }

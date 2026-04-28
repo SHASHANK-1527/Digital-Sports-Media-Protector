@@ -1,77 +1,67 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { motion } from 'framer-motion'
+import { useNavigate, Link, useLocation } from 'react-router-dom'
+import { motion, AnimatePresence } from 'framer-motion'
 import { onAuthStateChanged } from 'firebase/auth'
+import { 
+  LayoutDashboard, 
+  PlusSquare, 
+  LogOut, 
+  ShieldCheck, 
+  User,
+  ArrowLeft,
+  Image as ImageIcon,
+  CheckCircle2
+} from 'lucide-react'
 import { auth } from '../services/firebase'
 import { registerAsset } from '../services/api'
 import UploadZone from '../components/UploadZone'
-
-const stagger = {
-  hidden: { opacity: 0 },
-  show: { opacity: 1, transition: { staggerChildren: 0.1 } },
-}
-const item = { hidden: { opacity: 0, y: 12 }, show: { opacity: 1, y: 0 } }
+import Badge from '../components/ui/Badge'
 
 export default function AdminRegister() {
-  const [file, setFile]                   = useState(null)
-  const [ownerName, setOwnerName]         = useState('')
+  const [file, setFile] = useState(null)
+  const [ownerName, setOwnerName] = useState('')
   const [sportCategory, setSportCategory] = useState('')
-  const [loading, setLoading]             = useState(false)
-  const [progress, setProgress]           = useState(0)
-  const [error, setError]                 = useState('')
-  const [success, setSuccess]             = useState('')
+  const [contentId, setContentId] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+  const [success, setSuccess] = useState(false)
+  
   const navigate = useNavigate()
+  const location = useLocation()
 
-  /* Auth guard — redirect if not logged in */
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (!user) {
         navigate('/admin')
       } else {
         setOwnerName(user.displayName || user.email || '')
+        // Auto-generate a content ID prefix
+        setContentId(`ASSET-${Math.random().toString(36).substr(2, 9).toUpperCase()}`)
       }
     })
     return unsubscribe
   }, [navigate])
 
-  /* Fake progress bar while uploading */
-  useEffect(() => {
-    if (!loading) return
-    const interval = window.setInterval(() => {
-      setProgress((v) => Math.min(95, v + 8))
-    }, 500)
-    return () => window.clearInterval(interval)
-  }, [loading])
-
-  /* Object URL for preview */
-  const previewUrl = useMemo(() => (file ? URL.createObjectURL(file) : null), [file])
-  useEffect(() => () => { if (previewUrl) URL.revokeObjectURL(previewUrl) }, [previewUrl])
-
   const handleSubmit = async (event) => {
     event.preventDefault()
     setError('')
-    setSuccess('')
-
-    if (!file) { setError('Please select an image or video file to register.'); return }
-    if (!sportCategory) { setError('Please choose a sport category.'); return }
-
-    const user = auth.currentUser
-    if (!user) { navigate('/admin'); return }
+    
+    if (!file) return setError('Media file is required for registration.')
+    if (!sportCategory) return setError('Please select a sport category.')
 
     setLoading(true)
-    setProgress(10)
-
     try {
-      const idToken  = await user.getIdToken()
+      const user = auth.currentUser
+      const idToken = await user.getIdToken()
+      
       const formData = new FormData()
       formData.append('file', file)
       formData.append('owner_name', ownerName)
       formData.append('sport_category', sportCategory)
+      formData.append('content_id', contentId)
 
       await registerAsset(formData, idToken)
-      setProgress(100)
-      setSuccess('Asset registered successfully! Redirecting to dashboard...')
-      setTimeout(() => navigate('/admin/dashboard'), 1200)
+      setSuccess(true)
     } catch (err) {
       setError(err.response?.data?.error || err.message || 'Failed to register asset.')
     } finally {
@@ -79,169 +69,204 @@ export default function AdminRegister() {
     }
   }
 
-  return (
-    <div className="min-h-screen bg-dap-bg px-4 py-10 text-dap-text-primary sm:px-6">
-      <div className="mx-auto max-w-4xl">
-        <motion.div
-          className="space-y-8"
-          variants={stagger}
-          initial="hidden"
-          animate="show"
+  const navItems = [
+    { label: 'Dashboard', icon: LayoutDashboard, path: '/admin/dashboard' },
+    { label: 'Register Asset', icon: PlusSquare, path: '/admin/register' },
+  ]
+
+  if (success) {
+    return (
+      <div className="min-h-screen bg-bg-void flex items-center justify-center p-4">
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="max-w-md w-full bg-[#12171F] border border-white/[0.07] rounded-2xl p-12 text-center space-y-6"
         >
-          {/* Header row */}
-          <motion.div
-            variants={item}
-            className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"
+          <div className="w-20 h-20 bg-brand-primary/10 rounded-full flex items-center justify-center mx-auto">
+            <CheckCircle2 className="w-10 h-10 text-brand-primary" />
+          </div>
+          <div className="space-y-2">
+            <h2 className="font-display font-bold text-2xl text-white">Asset Securely Registered</h2>
+            <Badge verdict="ORIGINAL" />
+          </div>
+          <p className="font-body text-brand-neutral text-sm">
+            The media asset has been fingerprinted and added to the global protection registry.
+          </p>
+          <Link 
+            to="/admin/dashboard" 
+            className="block w-full py-4 bg-brand-primary text-bg-void font-display font-bold uppercase tracking-widest rounded-lg hover:brightness-110 transition-all"
           >
-            <div className="space-y-1">
-              <p className="font-mono text-xs text-dap-primary">[ASSET_REGISTRATION]</p>
-              <h1 className="font-mono text-2xl font-bold text-dap-text-primary">
-                REGISTER NEW ASSET
-              </h1>
-              <p className="font-mono text-xs text-dap-text-secondary">
-                // Upload official sports media and register it in the system
-              </p>
+            Return to Dashboard
+          </Link>
+        </motion.div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="min-h-screen bg-bg-void text-text-primary flex">
+      
+      {/* Sidebar */}
+      <aside className="w-60 bg-[#0C0F14] border-r border-white/[0.07] flex flex-col fixed inset-y-0 z-50">
+        <div className="p-6">
+          <Link to="/" className="flex items-center gap-3 group">
+            <div className="w-8 h-8 bg-brand-primary flex items-center justify-center rounded">
+              <span className="font-display font-black text-bg-void text-xl">G</span>
+            </div>
+            <div className="flex flex-col">
+              <span className="font-display font-bold text-white tracking-tighter leading-none">GUARD</span>
+              <span className="font-mono text-[9px] text-brand-primary tracking-widest leading-none mt-1">SECURITY</span>
+            </div>
+          </Link>
+        </div>
+
+        <nav className="flex-1 px-4 py-6 space-y-2">
+          {navItems.map((item) => {
+            const isActive = location.pathname === item.path
+            return (
+              <Link
+                key={item.path}
+                to={item.path}
+                className={`flex items-center gap-3 px-4 py-3 rounded-lg font-mono text-xs uppercase tracking-widest transition-all group ${
+                  isActive 
+                    ? 'bg-[#1A2130] text-brand-primary border-l-[3px] border-l-brand-primary' 
+                    : 'text-brand-neutral hover:bg-[#1A2130] hover:text-white'
+                }`}
+              >
+                <item.icon className={`w-4 h-4 ${isActive ? 'text-brand-primary' : 'text-brand-neutral group-hover:text-white'}`} />
+                {item.label}
+              </Link>
+            )
+          })}
+        </nav>
+
+        <div className="p-4 border-t border-white/[0.07] space-y-4">
+          <div className="flex items-center gap-3 px-2">
+            <div className="w-8 h-8 rounded-full bg-brand-primary/10 flex items-center justify-center">
+              <User className="w-4 h-4 text-brand-primary" />
+            </div>
+            <div className="flex flex-col truncate">
+              <span className="font-mono text-[10px] text-brand-neutral truncate">{auth.currentUser?.email}</span>
+              <span className="font-mono text-[9px] text-brand-primary uppercase tracking-tighter">Verified Owner</span>
+            </div>
+          </div>
+          <button
+            onClick={() => { auth.signOut(); navigate('/admin') }}
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg font-mono text-xs uppercase tracking-widest text-brand-secondary hover:bg-brand-secondary/5 transition-all"
+          >
+            <LogOut className="w-4 h-4" />
+            Sign Out
+          </button>
+        </div>
+      </aside>
+
+      {/* Main Content */}
+      <main className="flex-1 ml-60 p-8">
+        
+        <div className="max-w-4xl mx-auto">
+          <div className="mb-10">
+            <Link to="/admin/dashboard" className="inline-flex items-center gap-2 font-mono text-[10px] text-brand-neutral hover:text-brand-primary transition-colors uppercase tracking-widest mb-4">
+              <ArrowLeft className="w-3 h-3" />
+              Back to Dashboard
+            </Link>
+            <h1 className="font-display font-bold text-3xl uppercase tracking-wider text-white">Register New Asset</h1>
+            <p className="font-body text-brand-neutral mt-2">Initialize media fingerprinting for rights protection</p>
+          </div>
+
+          <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-2 gap-12">
+            
+            {/* Left Column: Media Upload */}
+            <div className="space-y-4">
+              <label className="font-mono text-[11px] text-brand-neutral uppercase tracking-widest block pl-1">Media Source</label>
+              <div className="relative">
+                 <UploadZone 
+                    onFileSelect={setFile}
+                    onUrlChange={() => {}}
+                    compact={true}
+                 />
+              </div>
+              {file && (
+                <div className="bg-[#12171F] border border-white/10 rounded-lg p-4 flex items-center gap-4">
+                   <div className="w-12 h-12 bg-brand-primary/10 rounded flex items-center justify-center">
+                      <ImageIcon className="w-6 h-6 text-brand-primary" />
+                   </div>
+                   <div className="flex-1 truncate">
+                      <p className="font-mono text-xs text-white truncate">{file.name}</p>
+                      <p className="font-mono text-[10px] text-brand-neutral">{(file.size / (1024 * 1024)).toFixed(2)} MB</p>
+                   </div>
+                </div>
+              )}
             </div>
 
-            <motion.button
-              type="button"
-              onClick={() => navigate('/admin/dashboard')}
-              className="self-start px-4 py-2 border border-dap-text-secondary text-dap-text-secondary hover:border-dap-primary hover:text-dap-primary font-mono text-xs uppercase tracking-wider transition-colors"
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-            >
-              ← DASHBOARD
-            </motion.button>
-          </motion.div>
-
-          {/* Form card */}
-          <motion.div
-            variants={item}
-            className="border border-dap-border bg-dap-bg/50 p-8"
-          >
-            <form onSubmit={handleSubmit} className="space-y-8">
-              {/* Fields grid */}
-              <div className="grid gap-6 md:grid-cols-2">
-                <div>
-                  <label className="block font-mono text-xs uppercase tracking-[0.15em] text-dap-text-secondary mb-2">
-                    Owner Name
-                  </label>
-                  <div className="relative">
-                    <span className="absolute left-3 top-3 font-mono text-dap-primary text-sm">&gt;</span>
-                    <input
-                      type="text"
-                      value={ownerName}
-                      onChange={(e) => setOwnerName(e.target.value)}
-                      className="w-full pl-8 pr-3 py-3 bg-dap-bg border border-dap-border text-dap-text-primary font-mono text-sm outline-none transition-colors focus:border-dap-primary focus:ring-1 focus:ring-dap-primary/30"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block font-mono text-xs uppercase tracking-[0.15em] text-dap-text-secondary mb-2">
-                    Sport Category
-                  </label>
-                  <div className="relative">
-                    <span className="absolute left-3 top-3 font-mono text-dap-primary text-sm">&gt;</span>
-                    <select
-                      value={sportCategory}
-                      onChange={(e) => setSportCategory(e.target.value)}
-                      className="w-full pl-8 pr-3 py-3 bg-dap-bg border border-dap-border text-dap-text-primary font-mono text-sm outline-none transition-colors focus:border-dap-primary focus:ring-1 focus:ring-dap-primary/30 appearance-none"
-                    >
-                      <option value="" className="bg-dap-bg">Select a category</option>
-                      <option value="Football"   className="bg-dap-bg">Football</option>
-                      <option value="Basketball" className="bg-dap-bg">Basketball</option>
-                      <option value="Cricket"    className="bg-dap-bg">Cricket</option>
-                      <option value="Tennis"     className="bg-dap-bg">Tennis</option>
-                      <option value="Other"      className="bg-dap-bg">Other</option>
-                    </select>
-                  </div>
-                </div>
-              </div>
-
-              {/* Upload zone */}
-              <div>
-                <label className="block font-mono text-xs uppercase tracking-[0.15em] text-dap-text-secondary mb-3">
-                  Media File
-                </label>
-                <UploadZone
-                  accept="image/*,video/*"
-                  maxSizeMB={200}
-                  onFileSelect={setFile}
-                  onUrlChange={() => {}}
+            {/* Right Column: Fields */}
+            <div className="space-y-6">
+              <div className="space-y-2">
+                <label className="font-mono text-[11px] text-brand-neutral uppercase tracking-widest block pl-1">Content Identifier</label>
+                <input
+                  type="text"
+                  value={contentId}
+                  onChange={(e) => setContentId(e.target.value)}
+                  className="w-full bg-[#12171F] border border-white/10 rounded-md px-4 py-3 font-mono text-xs text-brand-primary focus:outline-none focus:border-brand-primary transition-all"
+                  placeholder="AUTO-GENERATING..."
                 />
               </div>
 
-              {/* Preview */}
-              {previewUrl && (
-                <motion.div
-                  className="border border-dap-border bg-dap-bg/30 p-4"
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                >
-                  <p className="font-mono text-xs text-dap-text-secondary mb-3">[FILE_PREVIEW]</p>
-                  {file.type.startsWith('image/') ? (
-                    <img src={previewUrl} alt="Preview" className="h-56 w-full object-cover" />
-                  ) : (
-                    <video src={previewUrl} controls className="h-56 w-full bg-black object-contain" />
-                  )}
-                </motion.div>
-              )}
+              <div className="space-y-2">
+                <label className="font-mono text-[11px] text-brand-neutral uppercase tracking-widest block pl-1">Rights Holder</label>
+                <input
+                  type="text"
+                  value={ownerName}
+                  onChange={(e) => setOwnerName(e.target.value)}
+                  className="w-full bg-[#12171F] border border-white/10 rounded-md px-4 py-3 font-body text-sm text-white focus:outline-none focus:border-brand-primary transition-all"
+                />
+              </div>
 
-              {/* Progress bar */}
-              {loading && (
-                <motion.div
-                  className="border border-dap-border bg-dap-bg/30 p-4"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
+              <div className="space-y-2">
+                <label className="font-mono text-[11px] text-brand-neutral uppercase tracking-widest block pl-1">Sport Category</label>
+                <select
+                  value={sportCategory}
+                  onChange={(e) => setSportCategory(e.target.value)}
+                  className="w-full bg-[#12171F] border border-white/10 rounded-md px-4 py-3 font-body text-sm text-white focus:outline-none focus:border-brand-primary transition-all appearance-none cursor-pointer"
                 >
-                  <p className="font-mono text-xs text-dap-primary mb-3">
-                    [UPLOADING] {progress}%
-                  </p>
-                  <div className="h-1.5 bg-dap-border overflow-hidden">
-                    <motion.div
-                      className="h-full bg-dap-primary"
-                      animate={{ width: `${progress}%` }}
-                      transition={{ duration: 0.4 }}
-                    />
-                  </div>
-                </motion.div>
-              )}
+                  <option value="">Select Category</option>
+                  <option value="Football">Football / Soccer</option>
+                  <option value="Basketball">Basketball</option>
+                  <option value="Cricket">Cricket</option>
+                  <option value="UFC">UFC / MMA</option>
+                  <option value="Tennis">Tennis</option>
+                  <option value="Other">Other Global Sports</option>
+                </select>
+              </div>
 
-              {/* Feedback */}
               {error && (
-                <motion.p
-                  className="font-mono text-xs text-dap-danger border border-dap-danger/30 bg-dap-danger/5 p-3"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                >
-                  ⚠ {error}
-                </motion.p>
-              )}
-              {success && (
-                <motion.p
-                  className="font-mono text-xs text-dap-success border border-dap-success/30 bg-dap-success/5 p-3"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                >
-                  ✓ {success}
-                </motion.p>
+                <div className="p-4 bg-brand-secondary/10 border border-brand-secondary/20 rounded-lg text-brand-secondary font-mono text-xs">
+                  {error}
+                </div>
               )}
 
-              {/* Submit */}
-              <motion.button
+              <button
                 type="submit"
                 disabled={loading}
-                className="w-full py-3 border border-dap-accent text-dap-accent hover:bg-dap-accent/10 font-mono text-xs uppercase tracking-wider disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                whileHover={!loading ? { scale: 1.01, boxShadow: '0 0 24px rgba(255,176,32,0.25)' } : {}}
-                whileTap={!loading ? { scale: 0.99 } : {}}
+                className="w-full bg-brand-primary text-bg-void font-display font-bold uppercase tracking-widest rounded-lg py-4 flex items-center justify-center gap-3 hover:brightness-110 transition-all disabled:opacity-40"
               >
-                {loading ? '[REGISTERING...]' : '[REGISTER ASSET]'}
-              </motion.button>
-            </form>
-          </motion.div>
-        </motion.div>
-      </div>
+                {loading ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-bg-void border-t-transparent rounded-full animate-spin" />
+                    Fingerprinting Asset...
+                  </>
+                ) : (
+                  <>
+                    <ShieldCheck className="w-5 h-5" />
+                    Register Asset
+                  </>
+                )}
+              </button>
+            </div>
+
+          </form>
+        </div>
+
+      </main>
     </div>
   )
 }
