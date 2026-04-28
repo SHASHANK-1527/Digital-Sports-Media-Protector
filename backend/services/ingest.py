@@ -21,21 +21,30 @@ def fetch_from_url(url: str) -> Path:
     return p
 
 
-def extract_frames(video_path: Path, fps: int = 1) -> list[Path]:
-  """Extract 1 frame per second from a video. Returns list of image paths."""
+def extract_frames(video_path: Path, max_frames: int = 10) -> list[Path]:
+  """Extract up to max_frames from a video using seeking to save RAM."""
   cap = cv2.VideoCapture(str(video_path))
-  video_fps = cap.get(cv2.CAP_PROP_FPS) or 25
-  frames, frame_paths = [], []
-  idx = 0
-  while True:
+  total_count = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+  if total_count <= 0:
+    cap.release()
+    return []
+  
+  # Calculate interval to get max_frames evenly spread
+  interval = max(1, total_count // max_frames)
+  frame_paths = []
+  
+  for i in range(0, total_count, interval):
+    if len(frame_paths) >= max_frames:
+      break
+    cap.set(cv2.CAP_PROP_POS_FRAMES, i)
     ret, frame = cap.read()
     if not ret:
       break
-    if idx % int(video_fps / fps) == 0:
-      p = TEMP_DIR / f"{video_path.stem}_f{idx}.jpg"
-      cv2.imwrite(str(p), frame)
-      frame_paths.append(p)
-    idx += 1
+    
+    p = TEMP_DIR / f"{video_path.stem}_f{i}.jpg"
+    cv2.imwrite(str(p), frame)
+    frame_paths.append(p)
+    
   cap.release()
   return frame_paths
 

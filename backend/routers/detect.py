@@ -1,14 +1,5 @@
 from fastapi import APIRouter, UploadFile, File, Form
 from typing import Optional
-from services.ingest import fetch_from_url, normalize_image, extract_frames
-from services.fingerprint import generate_phash
-from services.embedding import generate_embedding
-from services.matcher import find_best_match
-from services.scorer import compute_verdict
-from services.gemini import describe_content
-from services.report import generate_evidence_report
-from db.firestore import save_detection, increment_detection_count
-from pathlib import Path
 import uuid, shutil, os
 
 router = APIRouter()
@@ -18,6 +9,15 @@ async def detect_media(
   file: Optional[UploadFile] = File(None),
   url: Optional[str] = Form(None)
 ):
+  # Lazy load heavy modules to save RAM
+  from services.ingest import fetch_from_url, normalize_image, extract_frames
+  from services.fingerprint import generate_phash
+  from services.embedding import generate_embedding
+  from services.matcher import find_best_match
+  from services.scorer import compute_verdict
+  from services.gemini import describe_content
+  from db.firestore import save_detection, increment_detection_count
+
   detection_id = str(uuid.uuid4())
   tmp_path = None
   rep_frame = None
