@@ -94,8 +94,13 @@ async def detect_media(
     }
 
     save_detection(result)
-
     return result
+
+  except Exception as e:
+    import traceback
+    print(f"CRITICAL ERROR in /detect: {str(e)}")
+    print(traceback.format_exc())
+    return {"error": f"Internal Server Error: {str(e)}"}
 
   finally:
     try:
