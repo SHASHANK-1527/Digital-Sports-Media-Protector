@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from firebase_admin import firestore
 from pathlib import Path
 
 Path("/tmp/dap").mkdir(parents=True, exist_ok=True)
