@@ -22,10 +22,13 @@ if not firebase_admin._apps:
     print(f"DEBUG: Firebase Initializing with project_id: {getattr(cred, 'project_id', 'unknown')}")
     firebase_admin.initialize_app(cred)
 
-# Force the use of your specific database ID
+# Robust initialization for named databases
+from google.cloud import firestore as gcloud_firestore
 db_id = "sports-media-protector"
-db = firestore.client(database=db_id)
-print(f"DEBUG: Firestore client FORCED to project: {db.project} (Database: {db_id})")
+project_id = os.environ.get("GCP_PROJECT_ID", "digital-assets-protection-mvp")
+
+db = gcloud_firestore.Client(project=project_id, database=db_id)
+print(f"DEBUG: Firestore client FORCED via gcloud-client: {db.project} (Database: {db_id})")
 
 def save_official_media(data: dict):
     try:
