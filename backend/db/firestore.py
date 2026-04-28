@@ -24,11 +24,18 @@ if not firebase_admin._apps:
 
 # Robust initialization for named databases
 from google.cloud import firestore as gcloud_firestore
+from google.oauth2 import service_account
 db_id = "sports-media-protector"
 project_id = os.environ.get("GCP_PROJECT_ID", "digital-assets-protection-mvp")
 
-db = gcloud_firestore.Client(project=project_id, database=db_id)
-print(f"DEBUG: Firestore client FORCED via gcloud-client: {db.project} (Database: {db_id})")
+# Use the same credentials for the gcloud client
+if cred_json:
+    scoped_credentials = service_account.Credentials.from_service_account_info(cred_dict)
+    db = gcloud_firestore.Client(project=project_id, database=db_id, credentials=scoped_credentials)
+else:
+    db = gcloud_firestore.Client(project=project_id, database=db_id)
+
+print(f"DEBUG: Firestore client FORCED via gcloud-client with credentials: {db.project} (Database: {db_id})")
 
 def save_official_media(data: dict):
     try:
