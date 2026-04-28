@@ -22,13 +22,14 @@ app.include_router(batch.router)
 
 @app.get("/health")
 async def health_check():
-    from db.firestore import db
+    from db.firestore import db, db_id
     try:
         # Try to list collections as a connectivity test
         collections = [c.id for c in db.collections()]
         return {
             "status": "healthy",
             "project_id": db.project,
+            "database": db_id,
             "collections": collections
         }
     except Exception as e:
