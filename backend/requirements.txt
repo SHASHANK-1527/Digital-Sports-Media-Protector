@@ -3,7 +3,7 @@ uvicorn
 python-multipart
 pillow
 imagehash
-torch==2.1.0
+torch==2.9.0
 torchvision==0.16.0
 opencv-python-headless
 ffmpeg-python
