@@ -5,9 +5,22 @@ import firebase_admin
 from firebase_admin import credentials, firestore
 from google.cloud.firestore import Increment
 
-service_account_info = json.loads(os.environ["FIREBASE_SERVICE_ACCOUNT_JSON"])
-cred = credentials.Certificate(service_account_info)
-firebase_admin.initialize_app(cred)
+if not firebase_admin._apps:
+    service_account_json = os.environ.get("FIREBASE_SERVICE_ACCOUNT_JSON", "")
+    service_account_path = os.environ.get("FIREBASE_SERVICE_ACCOUNT_PATH", "")
+
+    if service_account_json and service_account_json.strip():
+        service_account_info = json.loads(service_account_json.strip())
+        cred = credentials.Certificate(service_account_info)
+    elif service_account_path and os.path.exists(service_account_path):
+        cred = credentials.Certificate(service_account_path)
+    else:
+        raise ValueError(
+            "Neither FIREBASE_SERVICE_ACCOUNT_JSON nor "
+            "FIREBASE_SERVICE_ACCOUNT_PATH is set correctly"
+        )
+    firebase_admin.initialize_app(cred)
+
 db = firestore.client()
 
 def save_official_media(data: dict):

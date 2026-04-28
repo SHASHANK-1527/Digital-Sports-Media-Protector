@@ -1,1 +1,1 @@
-from . import register, detect, assets
+from . import register, detect, assets, batch

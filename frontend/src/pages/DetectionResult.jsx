@@ -151,7 +151,7 @@ export default function DetectionResult() {
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
                     >
-                      [NEW_SCAN]
+                      [RUN ANOTHER SCAN]
                     </motion.button>
                   </div>
                 </motion.div>
@@ -167,7 +167,7 @@ export default function DetectionResult() {
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                   >
-                    [RUN_ANOTHER_CHECK]
+                    [RUN ANOTHER SCAN]
                   </motion.button>
                 </motion.div>
               )}

@@ -104,7 +104,8 @@ export default function AssetTable({ assets }) {
             &gt;
           </motion.button>
         </div>
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   )
 }
+
