@@ -68,8 +68,25 @@ async def detect_media(
 
     # Gemini description (only if match found)
     gemini_desc = None
+    heatmap_b64 = None
     if match:
       gemini_desc = describe_content(rep_frame)
+      
+      # Step 7: Heatmap Generation
+      from services.heatmap import generate_heatmap
+      import base64
+      
+      # We need the original asset path. For now, since we have no DB, 
+      # we'll assume the 'match' object has a local path or we skip it.
+      # If match['file_url'] is local, use it.
+      match_path = Path(match.get("local_path", "")) 
+      if match_path.exists():
+          hm_out = Path(f"/tmp/dap/hm_{detection_id}.jpg")
+          generate_heatmap(rep_frame, match_path, hm_out)
+          with open(hm_out, "rb") as hm_f:
+              heatmap_b64 = base64.b64encode(hm_f.read()).decode("utf-8")
+          if hm_out.exists():
+              os.remove(hm_out)
 
     # Forensic Watermark Extraction
     from services.watermark import extract_watermark
@@ -90,8 +107,7 @@ async def detect_media(
       "matched_file_url": match.get("file_url") if match else None,
       "watermark_verified": watermark_found is not None,
       "watermark_payload": watermark_found,
-      "timestamp_match_start": None,
-      "timestamp_match_end": None,
+      "heatmap_image": heatmap_b64, # New Field
       "gemini_description": gemini_desc,
     }
 

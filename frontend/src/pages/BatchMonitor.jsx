@@ -220,7 +220,11 @@ export default function BatchMonitor() {
                             </div>
                           </td>
                           <td className="px-6 py-4">
-                             {item.verdict === 'Pirated' ? (
+                             {item.status === 'failed' ? (
+                                <span className="flex items-center gap-2 text-red-500 font-mono text-[10px] font-bold uppercase" title={item.error}>
+                                   <AlertTriangle className="w-3 h-3" /> Error
+                                </span>
+                             ) : item.verdict === 'Pirated' ? (
                                 <span className="flex items-center gap-2 text-brand-secondary font-mono text-[10px] font-bold uppercase">
                                    <AlertTriangle className="w-3 h-3" /> Pirated
                                 </span>
@@ -229,24 +233,26 @@ export default function BatchMonitor() {
                                    <CheckCircle2 className="w-3 h-3" /> Original
                                 </span>
                              ) : (
-                                <span className="font-mono text-[10px] text-brand-neutral uppercase">Clean</span>
+                                <span className="font-mono text-[10px] text-brand-neutral uppercase">{item.verdict || 'Unknown'}</span>
                              )}
                           </td>
                           <td className="px-6 py-4 font-mono text-xs text-white">
-                            {typeof item.confidence_score === 'number' ? `${Math.round(item.confidence_score * 100)}%` : '---'}
+                            {item.status === 'failed' ? '---' : typeof item.confidence_score === 'number' ? `${Math.round(item.confidence_score * 100)}%` : '---'}
                           </td>
                           <td className="px-6 py-4">
-                            {item.verdict === 'Pirated' && item.detection_id ? (
+                            {item.status === 'success' && item.verdict === 'Pirated' && item.detection_id ? (
                                <button 
                                  onClick={() => window.open(getReportUrl(item.detection_id), '_blank')}
                                  className="text-brand-secondary hover:text-white transition-colors"
                                >
                                  <Download className="w-4 h-4" />
                                </button>
-                            ) : (
+                            ) : item.status === 'success' ? (
                                <Link to={`/result/${item.detection_id || ''}`} className="text-brand-primary hover:text-white transition-colors">
                                  <ExternalLink className="w-4 h-4" />
                                </Link>
+                            ) : (
+                               <span className="text-white/20" title={item.error}>-</span>
                             )}
                           </td>
                         </tr>
