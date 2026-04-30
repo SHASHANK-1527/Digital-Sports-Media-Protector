@@ -11,3 +11,8 @@ yt-dlp
 requests
 numpy
 scipy
+supabase
+psycopg2-binary
+torch
+torchvision
+invisible-watermark
