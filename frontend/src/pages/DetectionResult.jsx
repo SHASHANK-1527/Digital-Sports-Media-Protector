@@ -121,6 +121,7 @@ export default function DetectionResult() {
               similarityScore={Math.round((result.similarity_score || 0) * 100)}
               matchStart={result.timestamp_match_start}
               matchEnd={result.timestamp_match_end}
+              heatmapImage={result.heatmap_image}
             />
           </motion.div>
         )}

@@ -6,18 +6,44 @@ TEMP_DIR.mkdir(exist_ok=True)
 
 
 def fetch_from_url(url: str) -> Path:
-  """Download media from URL. Returns local file path."""
+  """Download media or tap into a live stream. Returns local file path."""
   dest = TEMP_DIR / f"{uuid.uuid4()}"
-  if "youtube.com" in url or "youtu.be" in url:
-    ydl_opts = {'outtmpl': str(dest) + '.%(ext)s', 'format': 'mp4'}
+  
+  # Configuration for yt-dlp
+  # If it's a live stream, we only want a small chunk
+  ydl_opts = {
+    'outtmpl': str(dest) + '.%(ext)s',
+    'format': 'best[ext=mp4]/best',
+    'quiet': True,
+    'no_warnings': True,
+  }
+
+  is_live = "youtube.com" in url or "youtu.be" in url or "twitch.tv" in url
+
+  if is_live:
+    # Tap into live stream: only download the first 5 seconds
+    ydl_opts['download_ranges'] = lambda info_dict, ydl: [{'start_time': 0, 'end_time': 5}]
+    ydl_opts['force_keyframes_at_cuts'] = True
+    
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-      ydl.download([url])
+      try:
+        ydl.download([url])
+      except Exception as e:
+        # Fallback if download_ranges isn't supported by the extractor
+        print(f"Live tap error: {e}. Attempting full download (capped).")
+        ydl_opts.pop('download_ranges')
+        ydl_opts['max_filesize'] = 50 * 1024 * 1024 # 50MB cap
+        ydl.download([url])
+
     return next(TEMP_DIR.glob(f"{dest.name}.*"))
   else:
-    r = requests.get(url, timeout=30)
+    # Direct File Download
+    r = requests.get(url, timeout=30, stream=True)
     suffix = ".mp4" if "video" in r.headers.get("content-type","") else ".jpg"
     p = Path(str(dest) + suffix)
-    p.write_bytes(r.content)
+    with open(p, 'wb') as f:
+        for chunk in r.iter_content(chunk_size=8192):
+            f.write(chunk)
     return p
 
 

@@ -23,6 +23,10 @@ class BatchDetectRequest(BaseModel):
     urls: List[str] = Field(..., max_items=10)
 
 
+# Max 1 concurrent heavy task for Free Tiers (512MB RAM limit)
+MAX_CONCURRENT_TASKS = 1
+semaphore = asyncio.Semaphore(MAX_CONCURRENT_TASKS)
+
 def _run_detection_for_url(url: str) -> dict:
     detection_id = str(uuid.uuid4())
     tmp_path = None
@@ -31,55 +35,63 @@ def _run_detection_for_url(url: str) -> dict:
     original_image_for_gemini = None
 
     try:
+        # Step 1: Ingest
         tmp_path = fetch_from_url(url)
         is_video = tmp_path.suffix.lower() in [".mp4", ".mov", ".webm", ".avi"]
 
+        # Step 2: Extract & Normalize
         if is_video:
             frames = extract_frames(tmp_path)
-            rep_frame = normalize_image(frames[0]) if frames else None
+            if not frames:
+                return {"url": url, "error": "No frames could be extracted from video", "status": "failed"}
+            rep_frame = normalize_image(frames[0])
             total_frames = len(frames)
-            # For preview and Gemini, use the original extracted frame (color), not the normalized one
             preview_frame = frames[0] if frames else None
             original_image_for_gemini = frames[0] if frames else None
         else:
             rep_frame = normalize_image(tmp_path)
             frames = [rep_frame]
             total_frames = 1
-            # For static image, use the original file
             preview_frame = tmp_path
             original_image_for_gemini = tmp_path
 
         if not rep_frame:
-            return {"url": url, "error": "Could not process media"}
+            return {"url": url, "error": "Normalization failed", "status": "failed"}
 
-        # Generate preview URL
-        submitted_preview_url = generate_preview_url(preview_frame) if preview_frame else None
-
+        # Step 3: Fingerprinting
         query_phash = generate_phash(rep_frame)
         query_embedding = generate_embedding(rep_frame)
 
+        # Step 4: Matching
         match = find_best_match(query_phash, query_embedding)
         similarity = match["combined_similarity"] if match else 0.0
 
+        # Step 5: Coverage (Video Only)
         matched_frames = 1 if match else 0
         if is_video and match and total_frames > 1:
-            matched_frames = sum(
-                1
-                for f in frames[:10]
-                if find_best_match(generate_phash(normalize_image(f)), generate_embedding(f))
-            )
+            check_frames = frames[:10]
+            for f in check_frames:
+                f_norm = normalize_image(f)
+                if find_best_match(generate_phash(f_norm), generate_embedding(f_norm)):
+                    matched_frames += 1
+                if f_norm != f and f_norm.exists():
+                    os.remove(f_norm)
+        
         coverage_ratio = matched_frames / max(total_frames, 1)
 
+        # Step 6: Scoring & Verdict
         verdict, confidence = compute_verdict(similarity, coverage_ratio)
 
+        # Step 7: AI Analysis (Gemini)
         gemini_desc = None
         if match:
             try:
                 gemini_desc = describe_content(original_image_for_gemini)
             except Exception as e:
-                print(f"Gemini failed for {url} (non-fatal): {e}")
+                print(f"Gemini failed for {url}: {e}")
                 gemini_desc = "AI analysis unavailable"
 
+        # Step 8: Update Stats
         if match and verdict in ["Pirated", "Suspicious"]:
             increment_detection_count(match["content_id"])
 
@@ -93,20 +105,20 @@ def _run_detection_for_url(url: str) -> dict:
             "matched_content_id": match["content_id"] if match else None,
             "matched_owner": match["owner_name"] if match else None,
             "matched_file_url": match.get("file_url") if match else None,
-            "submitted_url": submitted_preview_url,
-            "timestamp_match_start": None,
-            "timestamp_match_end": None,
+            "submitted_url": generate_preview_url(preview_frame) if preview_frame else None,
             "gemini_description": gemini_desc,
             "detection_timestamp": datetime.datetime.utcnow().isoformat(),
+            "status": "success"
         }
 
         save_detection(result)
         return result
+
     except Exception as exc:
         import traceback
         print(f"Batch detection error for {url}: {str(exc)}")
         print(traceback.format_exc())
-        return {"url": url, "error": str(exc)}
+        return {"url": url, "error": str(exc), "status": "failed"}
     finally:
         try:
             if tmp_path and tmp_path.exists():
@@ -119,25 +131,3 @@ def _run_detection_for_url(url: str) -> dict:
                 os.remove(original_image_for_gemini)
         except Exception as e:
             print(f"Cleanup warning for {url}: {e}")
-            if rep_frame and rep_frame != tmp_path:
-                os.remove(rep_frame)
-        except Exception:
-            pass
-
-
-async def _run_detection_for_url_async(url: str) -> dict:
-    loop = asyncio.get_running_loop()
-    return await loop.run_in_executor(None, _run_detection_for_url, url)
-
-
-@router.post("/batch-detect")
-async def batch_detect(request: BatchDetectRequest):
-    urls = [url.strip() for url in request.urls if url and url.strip()]
-    if not urls:
-        raise HTTPException(status_code=400, detail="Provide between 1 and 10 URLs.")
-    if len(urls) > 10:
-        raise HTTPException(status_code=400, detail="Maximum 10 URLs are allowed.")
-
-    tasks = [asyncio.create_task(_run_detection_for_url_async(url)) for url in urls]
-    results = await asyncio.gather(*tasks)
-    return results
