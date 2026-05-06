@@ -1,41 +1,36 @@
 import os
 from pathlib import Path
+from dotenv import load_dotenv
+load_dotenv()
 
-_gemini_model = None
+from google import genai
+from google.genai import types
 
-def get_gemini_model():
-    global _gemini_model
-    if _gemini_model is None:
-        import google.generativeai as genai
-        api_key = os.environ.get("GOOGLE_API_KEY")
-        if not api_key:
-            return None
-        genai.configure(api_key=api_key)
-        _gemini_model = genai.GenerativeModel("gemini-1.5-flash")
-    return _gemini_model
+client = genai.Client(api_key=os.environ["GOOGLE_API_KEY"])
 
 def describe_content(image_path: Path) -> str:
-    """
-    Send an image frame to Gemini and get a natural-language description
-    of the sports content it shows (for use in the evidence report).
-    """
-    model = get_gemini_model()
-    if not model:
-        return "Gemini API key not configured."
-    
-    with open(image_path, "rb") as f:
-        image_data = f.read()
-
-    prompt = (
-        "You are analyzing a frame from a sports media clip. "
-        "Describe what you see in detail: identify any visible team logos, "
-        "jersey colors, stadium elements, match graphics, or sport type. "
-        "This description will be used in an intellectual property evidence report. "
-        "Be factual and specific. Keep response under 100 words."
-    )
-
-    response = model.generate_content([
-        {"mime_type": "image/jpeg", "data": image_data},
-        prompt
-    ])
-    return response.text.strip()
+    try:
+        print(f"DEBUG: Gemini analysis requested for {image_path}")
+        with open(image_path, "rb") as f:
+            image_data = f.read()
+        
+        # Using gemini-flash-latest as it is the most stable reference in this environment
+        response = client.models.generate_content(
+            model="gemini-flash-latest",
+            contents=[
+                types.Part.from_bytes(
+                    data=image_data,
+                    mime_type="image/jpeg"
+                ),
+                "Describe this sports media content in under 100 words for an IP evidence report. Focus on identifying teams, players, or event details if visible."
+            ]
+        )
+        
+        if not response or not response.text:
+            print("Gemini warning: Empty response from model")
+            return "AI analysis unavailable"
+            
+        return response.text.strip()
+    except Exception as e:
+        print(f"Gemini error during description: {type(e).__name__}: {e}")
+        return "AI analysis unavailable"

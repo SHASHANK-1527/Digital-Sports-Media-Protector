@@ -2,7 +2,7 @@ from db.firestore import get_all_official_media
 from services.fingerprint import phash_similarity
 from services.embedding import cosine_similarity
 
-PHASH_THRESHOLD = 12       # Hamming distance — candidates below this advance
+PHASH_THRESHOLD = 25       # Hamming distance — candidates below this advance
 PHASH_WEIGHT = 0.4
 CNN_WEIGHT = 0.6
 
@@ -20,6 +20,11 @@ def find_best_match(query_phash: str, query_embedding: list[float]) -> dict | No
     hamming = int((1 - p_sim) * 64)
     if hamming <= PHASH_THRESHOLD:
       candidates.append((asset, p_sim))
+
+  print(f"Query phash: {query_phash}")
+  print(f"Candidates found: {len(candidates)}")
+  for asset, p_sim in candidates:
+    print(f"  Match: {asset['content_id'][:8]} sim={p_sim:.3f}")
 
   if not candidates:
     return None

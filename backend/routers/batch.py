@@ -2,13 +2,14 @@ import asyncio
 import os
 import shutil
 import uuid
+import datetime
 from pathlib import Path
 from typing import List
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
-from services.ingest import fetch_from_url, normalize_image, extract_frames
+from services.ingest import fetch_from_url, normalize_image, extract_frames, generate_preview_url
 from services.fingerprint import generate_phash
 from services.embedding import generate_embedding
 from services.matcher import find_best_match
@@ -26,6 +27,8 @@ def _run_detection_for_url(url: str) -> dict:
     detection_id = str(uuid.uuid4())
     tmp_path = None
     rep_frame = None
+    preview_frame = None
+    original_image_for_gemini = None
 
     try:
         tmp_path = fetch_from_url(url)
@@ -35,13 +38,22 @@ def _run_detection_for_url(url: str) -> dict:
             frames = extract_frames(tmp_path)
             rep_frame = normalize_image(frames[0]) if frames else None
             total_frames = len(frames)
+            # For preview and Gemini, use the original extracted frame (color), not the normalized one
+            preview_frame = frames[0] if frames else None
+            original_image_for_gemini = frames[0] if frames else None
         else:
             rep_frame = normalize_image(tmp_path)
             frames = [rep_frame]
             total_frames = 1
+            # For static image, use the original file
+            preview_frame = tmp_path
+            original_image_for_gemini = tmp_path
 
         if not rep_frame:
             return {"url": url, "error": "Could not process media"}
+
+        # Generate preview URL
+        submitted_preview_url = generate_preview_url(preview_frame) if preview_frame else None
 
         query_phash = generate_phash(rep_frame)
         query_embedding = generate_embedding(rep_frame)
@@ -62,7 +74,11 @@ def _run_detection_for_url(url: str) -> dict:
 
         gemini_desc = None
         if match:
-            gemini_desc = describe_content(rep_frame)
+            try:
+                gemini_desc = describe_content(original_image_for_gemini)
+            except Exception as e:
+                print(f"Gemini failed for {url} (non-fatal): {e}")
+                gemini_desc = "AI analysis unavailable"
 
         if match and verdict in ["Pirated", "Suspicious"]:
             increment_detection_count(match["content_id"])
@@ -77,19 +93,32 @@ def _run_detection_for_url(url: str) -> dict:
             "matched_content_id": match["content_id"] if match else None,
             "matched_owner": match["owner_name"] if match else None,
             "matched_file_url": match.get("file_url") if match else None,
+            "submitted_url": submitted_preview_url,
             "timestamp_match_start": None,
             "timestamp_match_end": None,
             "gemini_description": gemini_desc,
+            "detection_timestamp": datetime.datetime.utcnow().isoformat(),
         }
 
         save_detection(result)
         return result
     except Exception as exc:
+        import traceback
+        print(f"Batch detection error for {url}: {str(exc)}")
+        print(traceback.format_exc())
         return {"url": url, "error": str(exc)}
     finally:
         try:
-            if tmp_path:
+            if tmp_path and tmp_path.exists():
                 os.remove(tmp_path)
+            if rep_frame and rep_frame != tmp_path and isinstance(rep_frame, Path) and rep_frame.exists():
+                os.remove(rep_frame)
+            if preview_frame and preview_frame != tmp_path and isinstance(preview_frame, Path) and preview_frame.exists():
+                os.remove(preview_frame)
+            if original_image_for_gemini and original_image_for_gemini != tmp_path and isinstance(original_image_for_gemini, Path) and original_image_for_gemini.exists():
+                os.remove(original_image_for_gemini)
+        except Exception as e:
+            print(f"Cleanup warning for {url}: {e}")
             if rep_frame and rep_frame != tmp_path:
                 os.remove(rep_frame)
         except Exception:

@@ -1,6 +1,9 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pathlib import Path
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # Ensure temp directory exists
 Path("/tmp/dap").mkdir(parents=True, exist_ok=True)

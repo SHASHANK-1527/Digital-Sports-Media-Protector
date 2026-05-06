@@ -1,4 +1,4 @@
-import yt_dlp, requests, cv2, uuid, os
+import yt_dlp, requests, cv2, uuid, os, base64
 from pathlib import Path
 
 TEMP_DIR = Path("/tmp/dap")
@@ -56,3 +56,28 @@ def normalize_image(img_path: Path) -> Path:
   out = TEMP_DIR / f"norm_{img_path.name}"
   cv2.imwrite(str(out), img)
   return out
+
+
+def generate_preview_url(image_path: Path) -> str:
+  """Generate a base64 data URL preview from an image file."""
+  try:
+    # Read image in color for preview (not grayscale)
+    img = cv2.imread(str(image_path))
+    if img is None:
+      return None
+    
+    # Resize to reasonable preview size (max 400x400)
+    height, width = img.shape[:2]
+    if width > 400 or height > 400:
+      scale = min(400/width, 400/height)
+      new_width = int(width * scale)
+      new_height = int(height * scale)
+      img = cv2.resize(img, (new_width, new_height))
+    
+    # Encode to JPG
+    _, buffer = cv2.imencode('.jpg', img, [cv2.IMWRITE_JPEG_QUALITY, 85])
+    jpg_as_text = base64.b64encode(buffer).decode('utf-8')
+    return f"data:image/jpeg;base64,{jpg_as_text}"
+  except Exception as e:
+    print(f"Error generating preview: {e}")
+    return None
